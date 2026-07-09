@@ -1,0 +1,685 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" x-data="{
+    darkMode: true,
+    initTheme() {
+        const saved = localStorage.getItem('dashboard-theme');
+        this.darkMode = saved ? JSON.parse(saved) : true;
+    },
+    toggleTheme() {
+        this.darkMode = !this.darkMode;
+        localStorage.setItem('dashboard-theme', JSON.stringify(this.darkMode));
+    }
+}" x-init="initTheme()" :class="{'dark-theme': darkMode, 'light-theme': !darkMode}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cicada Rise - Business ERP Dashboard</title>
+    
+    <!-- Bootstrap 5 CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Cicada Rise Luxury Dashboard Theme */
+        :root {
+            --primary: #5B1A14;         /* Deep Burgundy - Heritage */
+            --secondary: #8B4513;       /* Rich Brown - Warmth */
+            --accent: #D4AF37;          /* Refined Gold - Luxury */
+            --success: #6B8E23;         /* Olive Green - Nature */
+            --font-heading: 'Playfair Display', serif;
+            --font-body: 'Poppins', sans-serif;
+            --transition-speed: 0.3s;
+        }
+
+        .dark-theme {
+            --bg-main: #0F0F0F;          /* Deep Dark */
+            --bg-secondary: #1A1A1A;    /* Slightly lighter */
+            --bg-panel: #1F1F1F;         /* Panel background */
+            --bg-input: #262626;         /* Input fields */
+            --text-main: #F5F1ED;        /* Warm Cream */
+            --text-secondary: #D4AF37;   /* Gold */
+            --text-muted: #A89968;       /* Muted Gold */
+            --border-color: rgba(212, 175, 55, 0.1);
+            --glass-bg: rgba(25, 25, 25, 0.8);
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+        }
+
+        .light-theme {
+            --bg-main: #FAF8F3;          /* Warm Off-White */
+            --bg-secondary: #FFFFFF;    /* Pure White */
+            --bg-panel: #FFFFFF;         /* Panel background */
+            --bg-input: #F9F6F0;         /* Light Input */
+            --text-main: #2C2416;        /* Dark Brown */
+            --text-secondary: #5B1A14;   /* Burgundy */
+            --text-muted: #8B6F47;       /* Warm Brown */
+            --border-color: rgba(91, 26, 20, 0.12);
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --shadow: 0 4px 12px rgba(91, 26, 20, 0.08);
+        }
+
+        * {
+            transition: background-color var(--transition-speed), color var(--transition-speed), border-color var(--transition-speed);
+        }
+
+        html, body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            font-weight: 300;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1, h2, h3, h4, h5, h6, .font-display {
+            font-family: var(--font-heading);
+            color: var(--text-secondary);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        p, a, span, li, label {
+            color: var(--text-main);
+        }
+
+        .text-main {
+            color: var(--text-main) !important;
+        }
+
+        /* Sidebar Design */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            width: 260px;
+            background-color: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            padding-top: 1.5rem;
+            transition: transform var(--transition-speed);
+        }
+
+        .sidebar-brand {
+            padding: 0 1.5rem 1.5rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-brand img {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .sidebar-brand span {
+            color: var(--text-secondary);
+        }
+
+        .sidebar-menu {
+            padding: 1.5rem 0.8rem;
+            overflow-y: auto;
+            height: calc(100vh - 140px);
+        }
+
+        .menu-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+            padding-left: 1rem;
+            margin-bottom: 0.8rem;
+            margin-top: 1.5rem;
+            font-weight: 700;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem 1rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-bottom: 0.3rem;
+            transition: all var(--transition-speed);
+            font-weight: 500;
+        }
+
+        .menu-item i {
+            width: 20px;
+            font-size: 1rem;
+            margin-right: 0.75rem;
+            color: var(--accent);
+        }
+
+        .menu-item:hover {
+            background-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .menu-item.active {
+            background-color: var(--primary);
+            color: #FFFFFF;
+            font-weight: 600;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .menu-item.active i {
+            color: var(--accent);
+        }
+
+        /* Top Bar */
+        .topbar {
+            margin-left: 260px;
+            height: 70px;
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 900;
+        }
+
+        .topbar h5, .topbar span {
+            color: var(--text-secondary);
+        }
+
+        /* Main Workspace Content */
+        .main-content {
+            margin-left: 260px;
+            padding: 2.5rem;
+            min-height: calc(100vh - 70px);
+            background-color: var(--bg-main);
+        }
+
+        /* Glassmorphism Cards */
+        .glass-card {
+            background-color: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            border-radius: 10px;
+            padding: 1.8rem;
+            margin-bottom: 1.8rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background-color var(--transition-speed);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(212, 175, 55, 0.12);
+        }
+
+        .glass-card h3, .glass-card h4, .glass-card h5 {
+            color: var(--text-secondary);
+        }
+
+        /* Inputs & Forms */
+        .form-control, .form-select {
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-main) !important;
+            border-radius: 6px;
+            font-family: var(--font-body);
+            transition: all var(--transition-speed);
+        }
+
+        .form-control::placeholder {
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: var(--bg-input);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.15);
+            color: var(--text-main);
+        }
+
+        .form-label {
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: #FFFFFF;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary);
+            border-color: var(--secondary);
+        }
+
+        /* Tables & Lists */
+        .table {
+            color: var(--text-main);
+        }
+
+        .table thead {
+            background-color: var(--bg-input);
+            border-color: var(--border-color);
+        }
+
+        .table thead th {
+            color: var(--text-secondary);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.5px;
+        }
+
+        .table tbody tr {
+            border-color: var(--border-color);
+        }
+
+        .table tbody tr:hover {
+            background-color: var(--bg-input);
+        }
+
+        /* Modal Styling */
+        .modal-content {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-header {
+            border-color: var(--border-color);
+        }
+
+        .modal-header h5, .modal-title {
+            color: var(--text-secondary);
+        }
+
+        .modal-body {
+            color: var(--text-main);
+        }
+
+        .modal-footer {
+            border-color: var(--border-color);
+        }
+
+        .btn-close {
+            filter: invert(0.8);
+        }
+
+        /* Enhanced Readability - Dark Theme Text Contrast */
+        .dark-theme .table tbody td,
+        .dark-theme .table tbody th {
+            color: #E8E0D5;
+        }
+
+        .dark-theme .form-control,
+        .dark-theme .form-select {
+            color: #E8E0D5 !important;
+        }
+
+        .dark-theme .form-control::placeholder {
+            color: #B8A890;
+        }
+
+        .dark-theme .btn {
+            color: #E8E0D5;
+        }
+
+        .dark-theme .btn-outline-secondary {
+            color: #B08A57;
+            border-color: #3F3F3F;
+        }
+
+        .dark-theme .btn-outline-secondary:hover {
+            color: #FFFFFF;
+            background-color: #3F3F3F;
+        }
+
+        .dark-theme .dropdown-item {
+            color: #2C2416 !important;
+        }
+
+        .dark-theme .dropdown-menu {
+            background-color: var(--bg-panel);
+            border-color: var(--border-color);
+        }
+
+        .dark-theme .badge {
+            color: #1A1A1A;
+            background-color: #D4AF37;
+        }
+
+        .dark-theme .alert {
+            color: #E8E0D5;
+        }
+
+        .dark-theme .text-muted {
+            color: #A89968 !important;
+        }
+
+        .dark-theme .text-secondary {
+            color: #D4AF37 !important;
+        }
+
+        .dark-theme a {
+            color: #D4AF37;
+        }
+
+        .dark-theme a:hover {
+            color: #E8C56A;
+        }
+
+        .dark-theme .input-group-text {
+            background-color: var(--bg-input) !important;
+            border-color: var(--border-color) !important;
+            color: var(--accent) !important;
+        }
+
+        .dark-theme .nav-tabs {
+            border-color: var(--border-color);
+        }
+
+        .dark-theme .nav-tabs .nav-link {
+            color: var(--text-muted);
+        }
+
+        .dark-theme .nav-tabs .nav-link.active {
+            color: var(--text-secondary);
+            background-color: var(--bg-input);
+            border-color: var(--border-color);
+        }
+
+        .dark-theme .card {
+            background-color: var(--bg-panel);
+            border-color: var(--border-color);
+        }
+
+        .dark-theme .card-title,
+        .dark-theme .card-header {
+            color: var(--text-secondary);
+        }
+
+        .dark-theme .text-dark {
+            color: #E8E0D5 !important;
+        }
+
+        .dark-theme .text-white {
+            color: #E8E0D5;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-input);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Responsive Sidebar Drawer */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-260px);
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .topbar {
+                margin-left: 0;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 1.5rem;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Prevent theme flashing by applying saved theme immediately before Alpine.js loads -->
+    <script>
+        (function() {
+            try {
+                const saved = localStorage.getItem('dashboard-theme');
+                const isDark = saved ? JSON.parse(saved) : true;
+                
+                // Apply theme class immediately to prevent flash
+                if (isDark) {
+                    document.documentElement.classList.add('dark-theme');
+                    document.documentElement.classList.remove('light-theme');
+                } else {
+                    document.documentElement.classList.add('light-theme');
+                    document.documentElement.classList.remove('dark-theme');
+                }
+            } catch (e) {
+                // Fallback to dark theme if localStorage fails
+                document.documentElement.classList.add('dark-theme');
+            }
+        })();
+    </script>
+
+    <!-- ERP Navigation Sidebar Menu -->
+    <div class="sidebar" id="sidebar-drawer">
+        <div class="sidebar-brand d-flex align-items-center">
+            <img src="{% static 'store/images/logo.jpg' %}" alt="Cicada Rise Logo" class="rounded-circle me-2">
+            <div>
+                <span class="font-display fw-bold text-uppercase" style="font-size: 1.1rem; letter-spacing:0.05em; color:var(--accent);">Cicada Rise</span>
+                <span class="d-block text-secondary" style="font-size:0.6rem; letter-spacing:0.1em; text-transform:uppercase;">Business ERP</span>
+            </div>
+        </div>
+
+        <div class="sidebar-menu">
+            <a href="{% url 'admin_dashboard' %}" class="menu-item {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}" id="menu-overview">
+                <i class="fa-solid fa-chart-line"></i> Dashboard
+            </a>
+
+            <div class="menu-label">Inquiries & Orders</div>
+            <a href="{% url 'dashboard_orders' %}" class="menu-item {% if request.resolver_match.url_name == 'dashboard_orders' and not is_whatsapp_view %}active{% endif %}" id="menu-all-orders">
+                <i class="fa-solid fa-cart-shopping"></i> All Orders
+            </a>
+            <a href="{% url 'dashboard_whatsapp_orders' %}" class="menu-item {% if request.resolver_match.url_name == 'dashboard_whatsapp_orders' or is_whatsapp_view %}active{% endif %}" id="menu-whatsapp-orders">
+                <i class="fa-brands fa-whatsapp"></i> WhatsApp Orders
+            </a>
+
+            <div class="menu-label">Catalog & Stock</div>
+            <a href="{% url 'dashboard_products' %}" class="menu-item {% if request.resolver_match.url_name == 'dashboard_products' %}active{% endif %}" id="menu-products">
+                <i class="fa-solid fa-shirt"></i> Products List
+            </a>
+            <a href="{% url 'dashboard_inventory' %}" class="menu-item {% if request.resolver_match.url_name == 'dashboard_inventory' %}active{% endif %}" id="menu-inventory">
+                <i class="fa-solid fa-warehouse"></i> Stock Manager
+            </a>
+
+            <div class="menu-label">Clients & Trust</div>
+            <a href="{% url 'dashboard_customers' %}" class="menu-item {% if request.resolver_match.url_name == 'dashboard_customers' or request.resolver_match.url_name == 'dashboard_customer_detail' %}active{% endif %}" id="menu-customers">
+                <i class="fa-solid fa-users"></i> Customers CRM
+            </a>
+            <a href="{% url 'dashboard_reviews' %}" class="menu-item {% if request.resolver_match.url_name == 'dashboard_reviews' %}active{% endif %}" id="menu-reviews">
+                <i class="fa-solid fa-comments"></i> Review Moderation
+            </a>
+            <a href="{% url 'dashboard_contacted_users' %}" class="menu-item {% if request.resolver_match.url_name == 'dashboard_contacted_users' %}active{% endif %}" id="menu-contacts">
+                <i class="fa-solid fa-envelope"></i> Contact Messages
+            </a>
+
+            <div class="menu-label">Admin Account</div>
+            <a href="{% url 'dashboard_admin_profile' %}" class="menu-item {% if request.resolver_match.url_name == 'dashboard_admin_profile' %}active{% endif %}" id="menu-admin-profile">
+                <i class="fa-solid fa-user-shield"></i> My Profile
+            </a>
+
+            <div class="menu-label">System Admin</div>
+            <a href="{% url 'dashboard_content' %}" class="menu-item {% if request.resolver_match.url_name == 'dashboard_content' %}active{% endif %}" id="menu-content">
+                <i class="fa-solid fa-sliders"></i> Content & Settings
+            </a>
+            <a href="{% url 'home' %}" class="menu-item" id="menu-view-store">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> View Storefront
+            </a>
+        </div>
+    </div>
+
+    <!-- Top Utility Controls Bar -->
+    <div class="topbar">
+        <!-- Sidebar Toggle for Mobile -->
+        <button class="btn btn-outline-secondary border-0 d-lg-none" onclick="document.getElementById('sidebar-drawer').classList.toggle('show');" id="mobile-sidebar-toggle">
+            <i class="fa-solid fa-bars fs-5"></i>
+        </button>
+
+        <!-- Search Bar -->
+        <div class="d-flex align-items-center" style="max-width: 400px; width: 100%;">
+            <div class="input-group">
+                <span class="input-group-text bg-transparent border-end-0 border-primary" style="color:var(--accent);"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" class="form-control border-start-0 border-primary bg-transparent text-white" placeholder="Search orders, SKU codes..." onkeyup="if(event.key === 'Enter') window.location.href='/dashboard/orders/?q='+this.value;" id="topbar-search-input">
+            </div>
+        </div>
+
+        <!-- Right Side controls -->
+        <div class="d-flex align-items-center gap-3">
+            
+            <!-- Dark/Light Theme Toggle -->
+            <button class="btn btn-outline-secondary border-0" @click="toggleTheme()" id="theme-toggle-btn" title="Toggle Theme Mode">
+                <i class="fa-solid" :class="darkMode ? 'fa-sun text-warning' : 'fa-moon text-primary'"></i>
+            </button>
+
+            <!-- Notification Center -->
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary border-0 position-relative" type="button" data-bs-toggle="dropdown" id="notification-bell">
+                    <i class="fa-regular fa-bell"></i>
+                    {% if low_stock > 0 or pending_reviews.count > 0 %}
+                        <span class="position-absolute top-1 start-75 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
+                    {% endif %}
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-3 shadow border-primary" style="width: 300px; font-size:0.8rem;">
+                    <h6 class="dropdown-header text-primary fw-bold px-0 border-bottom mb-2">Notification Center</h6>
+                    {% if low_stock > 0 %}
+                        <a href="{% url 'dashboard_inventory' %}" class="dropdown-item px-0 py-2 border-bottom d-block text-wrap text-decoration-none text-dark" id="notif-stock">
+                            <i class="fa-solid fa-triangle-exclamation text-danger me-1"></i> 
+                            You have <strong>{{ low_stock }}</strong> variants running low on stock.
+                        </a>
+                    {% endif %}
+                    {% if pending_reviews.count > 0 %}
+                        <a href="{% url 'dashboard_reviews' %}" class="dropdown-item px-0 py-2 border-bottom d-block text-wrap text-decoration-none text-dark" id="notif-reviews">
+                            <i class="fa-solid fa-comment-dots text-warning me-1"></i> 
+                            Awaiting approval for <strong>{{ pending_reviews.count }}</strong> reviews.
+                        </a>
+                    {% endif %}
+                    {% if not low_stock and not pending_reviews.count %}
+                        <div class="text-center text-muted py-2">No new system alerts.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Profile Dropdown -->
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary border-0 d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" id="profile-dropdown-btn">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span class="d-none d-md-inline" style="font-size:0.85rem;">{{ user.username }}</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end border-primary">
+                    <li><a class="dropdown-item" href="{% url 'profile' %}" id="profile-details-link">My Account</a></li>
+                    <li><a class="dropdown-item" href="{% url 'dashboard_content' %}" id="profile-settings-link">Brand Settings</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="{% url 'logout' %}" id="profile-logout-link">Sign Out</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Panel Workspace -->
+    <div class="main-content">
+        {% block dashboard_content %}{% endblock %}
+    </div>
+
+    <!-- Charts.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <!-- HTMX CDN -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- AlpineJS CDN -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Bootstrap 5 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Lightweight theme system - prevents lag and ensures persistence
+        
+        // Apply theme immediately to prevent flash
+        (function() {
+            try {
+                const saved = localStorage.getItem('dashboard-theme');
+                const isDark = saved ? JSON.parse(saved) : true;
+                const html = document.documentElement;
+                
+                if (isDark) {
+                    html.classList.add('dark-theme');
+                    html.classList.remove('light-theme');
+                } else {
+                    html.classList.add('light-theme');
+                    html.classList.remove('dark-theme');
+                }
+            } catch (e) {
+                document.documentElement.classList.add('dark-theme');
+            }
+        })();
+
+        // Ensure theme persists and doesn't have lag
+        document.addEventListener('DOMContentLoaded', () => {
+            // HTMX should preserve theme on page loads
+            document.addEventListener('htmx:beforeSwap', () => {
+                const saved = localStorage.getItem('dashboard-theme');
+                const isDark = saved ? JSON.parse(saved) : true;
+                const html = document.documentElement;
+                
+                if (isDark) {
+                    html.classList.add('dark-theme');
+                    html.classList.remove('light-theme');
+                } else {
+                    html.classList.add('light-theme');
+                    html.classList.remove('dark-theme');
+                }
+            });
+        });
+
+        // Trigger subtle animations on glass cards on load
+        document.addEventListener("DOMContentLoaded", () => {
+            if (typeof gsap !== 'undefined') {
+                gsap.from(".glass-card", {
+                    opacity: 0,
+                    y: 20,
+                    duration: 0.5,
+                    stagger: 0.1,
+                    ease: "power2.out"
+                });
+            }
+        });
+        
+        // HTMX config to handle CSRF
+        document.body.addEventListener('htmx:configRequest', (event) => {
+            event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

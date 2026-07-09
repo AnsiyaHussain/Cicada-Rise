@@ -1,0 +1,186 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}My Profile - Cicada Rise{% endblock %}
+
+{% block content %}
+<div class="container py-5" x-data="{ activeTab: 'orders' }">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="font-display display-5 text" style="color: #3E0202;">My Account</h1>
+            <p class="text-muted">Welcome, {{ user.first_name|default:user.username }}. Manage your information and view order history.</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Sidebar Navigation Tabs -->
+        <div class="col-md-3">
+            <div class="list-group list-group-flush shadow-sm bg-white p-3 border-top border-primary border-2">
+                <button type="button" 
+                        :class="{'list-group-item list-group-item-action border-0 px-3 py-2 fw-medium': true, 'active bg-primary text-white': activeTab === 'orders', 'text-muted': activeTab !== 'orders'}"
+                        @click="activeTab = 'orders'"
+                        id="profile-tab-orders">
+                    <i class="fa-solid fa-list-check me-2"></i> Order History
+                </button>
+                <button type="button" 
+                        :class="{'list-group-item list-group-item-action border-0 px-3 py-2 fw-medium': true, 'active bg-primary text-white': activeTab === 'details', 'text-muted': activeTab !== 'details'}"
+                        @click="activeTab = 'details'"
+                        id="profile-tab-details">
+                    <i class="fa-regular fa-address-card me-2"></i> Personal Details
+                </button>
+                <a href="{% url 'logout' %}" class="list-group-item list-group-item-action border-0 px-3 py-2 text-danger fw-medium" id="profile-tab-logout">
+                    <i class="fa-solid fa-arrow-right-from-bracket me-2"></i> Sign Out
+                </a>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="col-md-9">
+            <!-- Order History Tab -->
+            <div x-show="activeTab === 'orders'" class="card border-0 bg-white p-4 shadow-sm" style="display: none;" id="profile-orders-section">
+                <h3 class="font-display h4 mb-2 text-primary">Inquiry & Order History</h3>
+                
+                <!-- Order Policies Reminder Alert Banner (Requested by User) -->
+                <div class="alert alert-info py-3 px-3 rounded-0 border-0 shadow-sm mb-4" style="font-size:0.8rem;" id="profile-policies-reminder-banner">
+                    <h5 class="h6 font-body fw-bold text-uppercase mb-2 text-primary" style="font-size:0.75rem;"><i class="fa-solid fa-circle-info me-1"></i> Ordering & Return Notes</h5>
+                    <ul class="mb-0 ps-3 text-muted">
+                        <li><strong>Order Confirmation:</strong> Order statuses initially log as "New" and update to "Confirmed" once our staff confirms receipt verification via WhatsApp chat.</li>
+                        <li><strong>Fabric Color:</strong> Color shades may fluctuate slightly under cinematic lens focus or on varying device display panels.</li>
+                        <li><strong>Exchange Rules:</strong> All exchanges must be requested within <strong>24 hours of delivery receipt</strong>. Presenting a continuous, uncut <strong>unboxing video</strong> showing the parcel package opening is mandatory.</li>
+                    </ul>
+                </div>
+                
+                {% for order in orders %}
+                    <div class="card rounded-0 border-primary mb-4 shadow-sm" id="order-card-{{ order.id }}">
+                        <div class="card-header bg-cream border-bottom border-primary py-3 d-flex justify-content-between align-items-center flex-wrap g-2">
+                            <div>
+                                <span class="d-block text-muted" style="font-size:0.75rem;">Order Number</span>
+                                <strong class="text-primary">#CR-{{ order.id }}</strong>
+                            </div>
+                            <div>
+                                <span class="d-block text-muted" style="font-size:0.75rem;">Date Placed</span>
+                                <strong class="text-dark">{{ order.order_date|date:"M d, Y" }}</strong>
+                            </div>
+                            <div>
+                                <span class="d-block text-muted" style="font-size:0.75rem;">Total Price</span>
+                                <strong class="text-primary">₹{{ order.total_amount|floatformat:2 }}</strong>
+                            </div>
+                            <div>
+                                <span class="d-block text-muted mb-1" style="font-size:0.75rem;">Status</span>
+                                <span class="badge bg-{% if order.status == 'New' %}info{% elif order.status == 'Pending' %}warning{% elif order.status == 'Confirmed' %}primary{% elif order.status == 'Packed' %}secondary{% elif order.status == 'Shipped' %}dark{% elif order.status == 'Delivered' %}success{% else %}danger{% endif %}">
+                                    {{ order.status }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <h4 class="font-body fw-bold text-uppercase mb-3" style="font-size:0.75rem; letter-spacing:0.05em;">Items Ordered:</h4>
+                            <div class="table-responsive">
+                                <table class="table align-middle table-borderless mb-0" style="font-size:0.85rem;">
+                                    <thead>
+                                        <tr class="border-bottom text-muted">
+                                            <th>Product</th>
+                                            <th>SKU</th>
+                                            <th>Size / Color</th>
+                                            <th>Qty</th>
+                                            <th class="text-end">Price</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in order.items.all %}
+                                            <tr>
+                                                <td>
+                                                    <span class="d-block fw-medium text-primary">{{ item.product.name }}</span>
+                                                </td>
+                                                <td>{{ item.product.sku }}</td>
+                                                <td>
+                                                    <span class="badge bg-light text-dark border">{{ item.variant.size }}</span>
+                                                    <span class="badge bg-light text-dark border">{{ item.variant.color }}</span>
+                                                </td>
+                                                <td>{{ item.quantity }}</td>
+                                                <td class="text-end fw-medium text-dark">₹{{ item.price|floatformat:2 }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="row mt-3">
+                                <div class="col-md-8">
+                                    <span class="d-block text-muted fw-medium" style="font-size:0.75rem;">Shipping Address:</span>
+                                    <p class="text-muted mb-0" style="font-size:0.8rem;">{{ order.shipping_address }}</p>
+                                </div>
+                                <div class="col-md-4 text-md-end mt-2 mt-md-0">
+                                    <a href="https://api.whatsapp.com/send?phone=919447771056&text=Hello%20Cicada%20Rise%20Team!%20I%20would%20like%20to%20inquire%20about%20Order%20%23CR-{{ order.id }}." target="_blank" class="btn btn-premium btn-sm py-2 px-3" style="font-size:0.7rem;" id="order-whatsapp-inquiry-{{ order.id }}">
+                                        <i class="fa-brands fa-whatsapp me-1"></i> WhatsApp Inquiry
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="text-center py-5">
+                        <i class="fa-solid fa-leaf text-warning fs-1 mb-3"></i>
+                        <p class="text-muted">You haven't initiated any product inquiries or orders yet.</p>
+                        <a href="{% url 'shop' %}" class="btn btn-premium-outline mt-2" id="order-start-shop-btn">Explore Shop</a>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Personal Details Tab -->
+            <div x-show="activeTab === 'details'" class="card border-0 bg-white p-4 shadow-sm" style="display: none;" id="profile-details-section">
+                <h3 class="font-display h4 mb-4 text-primary">Edit Shipping & Account Details</h3>
+                
+                <form method="POST" id="profile-edit-form">
+                    {% csrf_token %}
+                    
+                    <h4 class="font-body fw-bold text-uppercase text-secondary mb-3 mt-1" style="font-size:0.75rem; letter-spacing:0.05em;">Personal Information</h4>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem;">First Name</label>
+                            {{ user_form.first_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem;">Last Name</label>
+                            {{ user_form.last_name }}
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem;">Email Address</label>
+                            {{ user_form.email }}
+                        </div>
+                    </div>
+
+                    <h4 class="font-body fw-bold text-uppercase text-secondary mb-3" style="font-size:0.75rem; letter-spacing:0.05em;">Shipping Details (Required for checkout)</h4>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem;">Phone Number</label>
+                            {{ profile_form.phone }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem;">Pin Code</label>
+                            {{ profile_form.pin_code }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem;">Address</label>
+                            {{ profile_form.address }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem;">City</label>
+                            {{ profile_form.city }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem;">State</label>
+                            {{ profile_form.state }}
+                        </div>
+                        
+                        <div class="col-12 mt-4">
+                            <button class="btn btn-premium w-100 py-3" type="submit" id="profile-save-btn">Save Changes</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

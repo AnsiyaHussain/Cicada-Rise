@@ -1,0 +1,116 @@
+{% extends 'store/dashboard/base.html' %}
+{% load static %}
+
+{% block dashboard_content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="font-display h3 mb-1"><i class="fa-solid fa-comments text-primary me-1"></i> Review Moderation</h2>
+        <p class="text-secondary" style="font-size:0.85rem;">Approve, hide, or feature customer reviews to display on the storefront and landing page sliders.</p>
+    </div>
+</div>
+
+<!-- Reviews Cards Grid -->
+<div class="row g-4 row-cols-1 row-cols-md-2" id="reviews-moderation-grid">
+    {% for r in reviews %}
+        <div class="col" id="review-row-{{ r.id }}">
+            <div class="glass-card mb-0 h-100 d-flex flex-column border-top border-3 {% if r.is_featured %}border-warning{% elif r.is_approved %}border-success{% else %}border-secondary{% endif %}">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center me-2" style="width: 32px; height: 32px; font-size:0.8rem;">
+                            {{ r.user.username|slice:":1"|upper }}
+                        </div>
+                        <div>
+                            <strong class="text-white d-block" style="font-size:0.85rem;">{{ r.user.first_name }} {{ r.user.last_name|slice:":1" }}.</strong>
+                            <span class="text-muted" style="font-size:0.75rem;">Username: {{ r.user.username }}</span>
+                        </div>
+                    </div>
+                    
+                    <span class="text-muted" style="font-size:0.7rem;">{{ r.created_at|date:"d M Y" }}</span>
+                </div>
+                
+                <div class="mb-2">
+                    <span class="text-secondary text-uppercase fw-bold d-block" style="font-size:0.65rem; letter-spacing:0.05em;">Product Design</span>
+                    <strong class="text-white" style="font-size:0.8rem;">{{ r.product.name }}</strong>
+                    <span class="text-muted" style="font-size:0.7rem;">(Code: {{ r.product.sku }})</span>
+                </div>
+                
+                <!-- Stars -->
+                <div class="text-warning mb-3" style="font-size:0.8rem;">
+                    {% if r.rating == 5 %}
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                    {% elif r.rating == 4 %}
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i>
+                    {% elif r.rating == 3 %}
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i>
+                    {% elif r.rating == 2 %}
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i>
+                    {% else %}
+                        <i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i>
+                    {% endif %}
+                </div>
+                
+                <p class="text-muted fst-italic mb-4" style="font-size:0.85rem; line-height: 1.6;">"{{ r.comment }}"</p>
+                
+                <!-- Action Buttons via HTMX -->
+                <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center flex-wrap g-2">
+                    <div>
+                        <span class="badge bg-{% if r.is_approved %}success{% else %}secondary{% endif %}" id="review-status-badge-{{ r.id }}">
+                            {% if r.is_approved %}Approved{% else %}Pending Moderation{% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="d-flex gap-1">
+                        <!-- Feature button -->
+                        <button id="feature-btn-{{ r.id }}" 
+                                class="btn btn-xs {% if r.is_featured %}btn-warning{% else %}btn-outline-warning{% endif %} py-1 px-2" 
+                                style="font-size:0.75rem;"
+                                hx-post="{% url 'dashboard_moderate_review' r.id %}" 
+                                hx-vals='{"action": "feature"}'
+                                hx-target="#review-status-badge-{{ r.id }}"
+                                hx-swap="outerHTML">
+                            {% if r.is_featured %}Featured{% else %}Feature{% endif %}
+                        </button>
+                        
+                        {% if not r.is_approved %}
+                            <!-- Approve button -->
+                            <button class="btn btn-xs btn-success py-1 px-2" 
+                                    style="font-size:0.75rem;"
+                                    hx-post="{% url 'dashboard_moderate_review' r.id %}" 
+                                    hx-vals='{"action": "approve"}'
+                                    hx-target="#review-status-badge-{{ r.id }}"
+                                    hx-swap="outerHTML">
+                                Approve
+                            </button>
+                        {% else %}
+                            <!-- Reject button -->
+                            <button class="btn btn-xs btn-secondary py-1 px-2" 
+                                    style="font-size:0.75rem;"
+                                    hx-post="{% url 'dashboard_moderate_review' r.id %}" 
+                                    hx-vals='{"action": "reject"}'
+                                    hx-target="#review-status-badge-{{ r.id }}"
+                                    hx-swap="outerHTML">
+                                Hide
+                            </button>
+                        {% endif %}
+                        
+                        <!-- Delete button -->
+                        <button class="btn btn-xs btn-outline-danger py-1 px-2" 
+                                style="font-size:0.75rem;"
+                                hx-post="{% url 'dashboard_moderate_review' r.id %}" 
+                                hx-vals='{"action": "delete"}'
+                                hx-target="#review-row-{{ r.id }}"
+                                hx-swap="delete"
+                                hx-confirm="Are you sure you want to permanently delete this review?">
+                            <i class="fa-regular fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12 text-center py-5">
+            <p class="text-muted">No customer reviews written in database.</p>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

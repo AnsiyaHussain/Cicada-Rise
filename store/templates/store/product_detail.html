@@ -1,0 +1,281 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}{{ product.name }} - Cicada Rise{% endblock %}
+
+{% block content %}
+<div class="container py-5" 
+     x-data="{
+        variants: [
+            {% for v in variants %}
+            { id: {{ v.id }}, size: '{{ v.size }}', color: '{{ v.color }}', stock: {{ v.stock }}, price: {{ v.price }} }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        activeSize: '{{ variants.0.size }}',
+        activeColor: '{{ variants.0.color }}',
+        quantity: 1,
+        
+        get activeVariant() {
+            return this.variants.find(v => v.size === this.activeSize && v.color === this.activeColor) || null;
+        },
+        get availableColors() {
+            let colors = this.variants.filter(v => v.size === this.activeSize).map(v => v.color);
+            return [...new Set(colors)];
+        },
+        get availableSizes() {
+            let sizes = this.variants.map(v => v.size);
+            return [...new Set(sizes)];
+        }
+     }">
+     
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-primary text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'shop' %}" class="text-primary text-decoration-none">Shop</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row g-5">
+        <!-- Product Image Showcase -->
+        <div class="col-md-6">
+            <div class="product-detail-carousel">
+                <div id="productCarousel" class="carousel slide" data-bs-ride="false">
+                    <div class="carousel-inner">
+                        {% for img in product.images.all %}
+                            <div class="carousel-item {% if img.is_primary %}active{% endif %}">
+                                <img src="{{ img.image.url }}" class="d-block w-100 img-fluid" alt="{{ product.name }}" style="object-fit: cover; max-height: 600px;">
+                            </div>
+                        {% empty %}
+                            <div class="carousel-item active">
+                                <img src="{% static 'store/images/veranda.jpg' %}" class="d-block w-100 img-fluid"alt="{{ product.name }}">
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% if product.images.count > 1 %}
+                        <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel" data-bs-slide="prev" id="product-carousel-prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true" style="filter: invert(1);"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#productCarousel" data-bs-slide="next" id="product-carousel-next">
+                            <span class="carousel-control-next-icon" aria-hidden="true" style="filter: invert(1);"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Information & Order Area -->
+        <div class="col-md-6">
+            <span class="text-uppercase text-secondary tracking-wider" style="font-size:0.75rem; letter-spacing:0.15em;">{{ product.category.name }}</span>
+            <h1 class="font-display display-5 text mt-2 mb-3"  style="color: #3E0202;" >{{ product.name }}</h1>
+            
+            <div class="d-flex align-items-center mb-3">
+                <div class="text-warning me-2">
+                    {% with rating=product.average_rating %}
+                        {% if rating >= 4.5 %}
+                            <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                        {% elif rating >= 3.5 %}
+                            <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i>
+                        {% else %}
+                            <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i>
+                        {% endif %}
+                    {% endwith %}
+                </div>
+                <span class="text-muted" style="font-size:0.85rem;">({{ product.average_rating }} | {{ reviews.count }} Reviews)</span>
+            </div>
+
+            <!-- Price -->
+       <div class="fs-2 fw-semibold mb-4"
+     style="font-family: 'Inter', sans-serif; color: #3E0202;">
+    ₹<span x-text="activeVariant ? activeVariant.price.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '{{ product.price }}'">{{ product.price }}</span>
+</div>
+
+            <p class="text-muted mb-4" style="font-size:0.9rem; line-height: 1.7;">{{ product.description }}</p>
+            
+            <hr class="mb-4">
+
+            <!-- Size Selection -->
+            <div class="mb-3">
+                <span class="font-body fw-bold text-uppercase d-block mb-2" style="font-size:0.75rem; letter-spacing:0.05em;">Select Size:</span>
+                <div class="d-flex flex-wrap gap-2">
+                    <template x-for="sz in availableSizes">
+                        <button type="button" 
+                                :class="{'variant-btn': true, 'active': activeSize === sz}" 
+                                @click="activeSize = sz; if(!availableColors.includes(activeColor)) activeColor = availableColors[0]"
+                                x-text="sz"
+                                :id="'size-btn-' + sz"></button>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Color Selection -->
+            <div class="mb-4">
+                <span class="font-body fw-bold text-uppercase d-block mb-2" style="font-size:0.75rem; letter-spacing:0.05em;">Select Color:</span>
+                <div class="d-flex flex-wrap gap-2">
+                    <template x-for="cl in availableColors">
+                        <button type="button" 
+                                :class="{'variant-btn': true, 'active': activeColor === cl}" 
+                                @click="activeColor = cl"
+                                x-text="cl"
+                                :id="'color-btn-' + cl"></button>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Inventory Display / Alerts -->
+            <div class="mb-4">
+                <template x-if="activeVariant && activeVariant.stock > 5">
+                    <span class="text-success fw-medium" style="font-size:0.85rem;">
+                        <i class="fa-solid fa-circle-check me-1"></i> Stock Available (<span x-text="activeVariant.stock"></span> units)
+                    </span>
+                </template>
+                <template x-if="activeVariant && activeVariant.stock <= 5 && activeVariant.stock > 0">
+                    <div class="alert alert-warning py-2 px-3 border-0 rounded-0 shadow-sm" style="font-size:0.8rem; max-width: 350px;">
+                        <i class="fa-solid fa-triangle-exclamation text-danger me-1"></i> 
+                        <strong>Low Stock Alert!</strong> Only <span x-text="activeVariant.stock"></span> items left.
+                    </div>
+                </template>
+                <template x-if="activeVariant && activeVariant.stock === 0">
+                    <span class="text-danger fw-bold" style="font-size:0.85rem;" id="variant-out-of-stock-alert">
+                        <i class="fa-solid fa-circle-xmark me-1"></i> Out of Stock
+                    </span>
+                </template>
+            </div>
+
+            <!-- Quantity Selection -->
+            <div class="d-flex align-items-center gap-3 mb-4" x-show="activeVariant && activeVariant.stock > 0">
+                <span class="font-body fw-bold text-uppercase" style="font-size:0.75rem; letter-spacing:0.05em;">Quantity:</span>
+                <div class="input-group" style="width: 130px; border: 1px solid var(--primary);">
+                    <button class="btn btn-outline-secondary border-0 rounded-0" type="button" @click="if(quantity > 1) quantity--" id="qty-decrement">-</button>
+                    <input type="text" class="form-control border-0 text-center bg-transparent" readonly :value="quantity" id="qty-input">
+                    <button class="btn btn-outline-secondary border-0 rounded-0" type="button" @click="if(quantity < activeVariant.stock) quantity++" id="qty-increment">+</button>
+                </div>
+            </div>
+
+            <!-- Actions Forms -->
+            {% if user.is_authenticated %}
+                <div class="row g-2" x-show="activeVariant && activeVariant.stock > 0">
+                    <div class="col-6">
+                        <form hx-post="{% url 'add_to_cart' product.id %}" hx-swap="none" id="add-to-cart-form">
+                            <input type="hidden" name="variant" :value="activeVariant ? activeVariant.id : ''">
+                            <input type="hidden" name="quantity" :value="quantity">
+                            <button type="submit" class="btn btn-premium-outline w-100 py-3" style="font-size: 0.8rem;" id="add-to-cart-submit">
+                                <i class="fa-solid fa-bag-shopping me-2"></i> Add to Bag
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="col-6">
+                        <form method="POST" action="{% url 'buy_now' product.id %}" id="buy-now-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="variant" :value="activeVariant ? activeVariant.id : ''">
+                            <input type="hidden" name="quantity" :value="quantity">
+                            <button type="submit" class="btn btn-premium w-100 py-3" style="font-size: 0.8rem;" id="buy-now-submit">
+                                <i class="fa-brands fa-whatsapp me-2"></i> Buy Now
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div x-show="!activeVariant || activeVariant.stock === 0">
+                    <button class="btn btn-secondary w-100 py-3 rounded-0" disabled id="disabled-out-of-stock-btn">Out of Stock</button>
+                </div>
+            {% else %}
+                <div class="alert alert-secondary py-3 px-4 border-0 rounded-0 shadow-sm" style="font-size:0.85rem;" id="auth-required-banner">
+                    <i class="fa-solid fa-lock text-primary me-2"></i> 
+                    Please <a href="{% url 'login' %}?next={{ request.path }}" class="text-primary fw-bold text-decoration-none">Sign In</a> to save items, add to cart or buy.
+                </div>
+            {% endif %}
+
+            <!-- Policies Reminder Alert (Requested by User) -->
+            <div class="mt-4 p-3 bg-white border border-warning" style="border-left: 4px solid var(--gold) !important; font-size: 0.8rem;" id="policies-reminder-alert">
+                <h5 class="h6 text-primary font-body fw-bold text-uppercase mb-2" style="font-size:0.75rem; letter-spacing:0.05em;">
+                    <i class="fa-solid fa-circle-info me-1"></i> Ordering & Return Policies
+                </h5>
+                <ul class="text-muted ps-3 mb-0" style="line-height:1.6;">
+                    <li><strong>WhatsApp Status Sync:</strong> Since orders are finalized over chat, your profile order history will transition to "Confirmed" once our team confirms payment verification on WhatsApp.</li>
+                    <li><strong>Color Disclaimer:</strong> Fabric colors may vary slightly due to studio lighting, screen calibration, or device monitor configurations.</li>
+                    <li><strong>Returns & Exchanges:</strong> Tightly restricted to within <strong>24 hours of delivery</strong>. A continuous <strong>unboxing video</strong> (no edits, no cuts) is mandatory to initiate a return.</li>
+                </ul>
+            </div>
+
+            <div class="mt-3 p-3 bg-white" style="border-left: 2px solid var(--gold);">
+                <span class="d-block font-body fw-bold text-uppercase text-secondary mb-1" style="font-size:0.75rem; letter-spacing:0.05em;">Product Details:</span>
+                <span class="text-muted" style="font-size:0.8rem;">Code: <strong class="text-dark">{{ product.sku }}</strong> | Category: {{ product.category.name }}</span>
+                {% if product.fabric_details %}
+                    <span class="d-block text-muted mt-2" style="font-size:0.8rem;"><strong>Fabric:</strong> {{ product.fabric_details }}</span>
+                {% endif %}
+                {% if product.care_instructions %}
+                    <span class="d-block text-muted mt-1" style="font-size:0.8rem;"><strong>Care:</strong> {{ product.care_instructions }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reviews and Ratings Section -->
+<div class="row mt-5 pt-4">
+    <div class="col-12">
+        <h2 class="font-display display-6 mb-4">Reviews & Customer Thoughts</h2>
+    </div>
+    
+    <!-- Reviews List -->
+    <div class="col-md-7 mb-4">
+        {% for r in reviews %}
+            <div class="card border-0 bg-white p-4 mb-3 shadow-sm" style="border-left: 3px solid var(--primary) !important;" id="review-card-{{ r.id }}">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h4 class="h6 mb-0 font-body fw-bold text-primary">{{ r.user.first_name }} {{ r.user.last_name|slice:":1" }}.</h4>
+                    <span class="text-muted" style="font-size:0.75rem;">{{ r.created_at|date:"M d, Y" }}</span>
+                </div>
+                <div class="text-warning mb-2" style="font-size:0.8rem;">
+                    {% if r.rating == 5 %}
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                    {% elif r.rating == 4 %}
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i>
+                    {% elif r.rating == 3 %}
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i>
+                    {% elif r.rating == 2 %}
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i>
+                    {% else %}
+                        <i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i><i class="fa-regular fa-star"></i>
+                    {% endif %}
+                </div>
+                <p class="text-muted mb-0" style="font-size:0.85rem; line-height: 1.6;">"{{ r.comment }}"</p>
+            </div>
+        {% empty %}
+            <div class="text-muted py-4">
+                <i class="fa-regular fa-message me-2"></i> No thoughts written for this design yet. Be the first to share!
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Add Review Form -->
+    <div class="col-md-5">
+        <div class="card border-0 bg-white p-4 shadow-sm" style="border-top: 2px solid var(--gold) !important;">
+            <h3 class="font-display h5 mb-3">Write a Review</h3>
+            {% if user.is_authenticated %}
+                <form method="POST" id="submit-review-form">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem;">Rating:</label>
+                        {{ review_form.rating }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem;">Comments:</label>
+                        {{ review_form.comment }}
+                    </div>
+                    <button type="submit" class="btn btn-premium w-100 py-3" style="font-size:0.8rem;" id="submit-review-btn">Submit for Review</button>
+                </form>
+            {% else %}
+                <p class="text-muted" style="font-size:0.85rem;">Please <a href="{% url 'login' %}?next={{ request.path }}" class="text-primary text-decoration-none">Sign In</a> to write reviews for our collections.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

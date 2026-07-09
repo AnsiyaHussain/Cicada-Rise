@@ -1,0 +1,75 @@
+{% extends 'store/dashboard/base.html' %}
+{% load static %}
+
+{% block dashboard_content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-sm-6">
+        <h2 class="font-display h3 mb-1"><i class="fa-solid fa-users text-primary me-1"></i> Customer CRM</h2>
+        <p class="text-secondary" style="font-size:0.85rem;">Browse client accounts, search contacts, and audit total client lifetime spending.</p>
+    </div>
+</div>
+
+<!-- Search CRM Panel -->
+<div class="glass-card mb-4">
+    <form method="GET" class="row g-3" id="crm-search-form">
+        <div class="col-md-9">
+            <div class="input-group">
+                <span class="input-group-text bg-transparent border-end-0 border-primary" style="color:var(--accent);"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" name="q" value="{{ query }}" class="form-control border-start-0 border-primary bg-transparent text-white" placeholder="Search customer name, username, phone..." id="search-crm-input">
+            </div>
+        </div>
+        <div class="col-md-3">
+            <button class="btn btn-premium w-100 py-2" type="submit" id="crm-search-submit-btn">Search CRM</button>
+        </div>
+    </form>
+</div>
+
+<!-- CRM Data Table -->
+<div class="glass-card">
+    <div class="table-responsive">
+        <table class="table align-middle table-hover" style="font-size: 0.85rem;">
+            <thead>
+                <tr class="table-light">
+                    <th>Client Name</th>
+                    <th>Username</th>
+                    <th>Email Address</th>
+                    <th>Phone Number</th>
+                    <th>Joined Date</th>
+                    <th class="text-center">Total Inquiries</th>
+                    <th class="text-end">Approved Spending</th>
+                    <th class="text-end">Client File</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for profile in customers %}
+                    <tr id="crm-row-{{ profile.id }}">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center me-2" style="width: 32px; height: 32px; font-size:0.8rem;">
+                                    {{ profile.user.username|slice:":1"|upper }}
+                                </div>
+                                <strong class="text-white">{{ profile.user.first_name }} {{ profile.user.last_name }}</strong>
+                            </div>
+                        </td>
+                        <td><code>{{ profile.user.username }}</code></td>
+                        <td>{{ profile.user.email }}</td>
+                        <td>{{ profile.phone|default:'N/A' }}</td>
+                        <td>{{ profile.user.date_joined|date:"d M Y" }}</td>
+                        <td class="text-center fw-medium">{{ profile.orders_count }}</td>
+                        <td class="text-end text-primary fw-bold">₹{{ profile.total_spending|floatformat:2 }}</td>
+                        <td class="text-end">
+                            <a href="{% url 'dashboard_customer_detail' profile.id %}" class="btn btn-sm btn-premium-outline py-1 px-2" style="font-size:0.75rem;" id="crm-file-btn-{{ profile.id }}">
+                                <i class="fa-solid fa-folder-open me-1"></i> View Profile
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">No client files found in database.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

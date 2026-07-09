@@ -1,0 +1,206 @@
+{% extends 'store/dashboard/base.html' %}
+{% load static %}
+
+{% block dashboard_content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-sm-6">
+        <h2 class="font-display h3 mb-1">
+            {% if is_whatsapp_view %}
+                <i class="fa-brands fa-whatsapp text-success me-1"></i> WhatsApp Order Inquiries
+            {% else %}
+                <i class="fa-solid fa-cart-flatbed-suitcases text-primary me-1"></i> Order Management
+            </td>
+            {% endif %}
+        </h2>
+        <p class="text-secondary" style="font-size:0.85rem;">
+            {% if is_whatsapp_view %}
+                Manage newly received inquiries from WhatsApp checkout. Confirm sizes, payments, and set contacted details.
+            {% else %}
+                Browse through all recorded digital transactions, packing sheets, and shipping channels.
+            {% endif %}
+        </p>
+    </div>
+    
+    <!-- Bulk Actions Panel (Shopify/Stripe style) -->
+    <div class="col-sm-6 text-sm-end">
+        <div class="btn-group shadow-sm">
+            <button class="btn btn-premium dropdown-toggle py-2 px-3" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size:0.8rem;">
+                <i class="fa-solid fa-list-check me-1"></i> Bulk Actions
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end border-primary" aria-labelledby="bulkActionsDropdown">
+                <li><button class="dropdown-item" type="button" onclick="submitBulkAction('Confirmed')" id="bulk-confirm">Mark Confirmed</button></li>
+                <li><button class="dropdown-item" type="button" onclick="submitBulkAction('Packed')" id="bulk-pack">Mark Packed</button></li>
+                <li><button class="dropdown-item" type="button" onclick="submitBulkAction('Shipped')" id="bulk-ship">Mark Shipped</button></li>
+                <li><button class="dropdown-item" type="button" onclick="submitBulkAction('Delivered')" id="bulk-deliver">Mark Delivered</button></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><button class="dropdown-item text-danger" type="button" onclick="submitBulkAction('Cancelled')" id="bulk-cancel">Cancel Orders</button></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Search & Filtering Widgets Panel -->
+<div class="glass-card mb-4">
+    <form method="GET" class="row g-3" id="orders-filter-form">
+        <div class="col-md-4">
+            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem; letter-spacing:0.05em;">Search Keyword</label>
+            <div class="input-group">
+                <span class="input-group-text bg-transparent border-end-0 border-primary" style="color:var(--accent);"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" name="q" value="{{ query }}" class="form-control border-start-0 border-primary bg-transparent" placeholder="Name, Phone, ID..." id="search-inquiries-input">
+            </div>
+        </div>
+        
+        {% if not is_whatsapp_view %}
+            <div class="col-md-3">
+                <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem; letter-spacing:0.05em;">Filter by Status</label>
+                <select name="status" class="form-select border-primary bg-transparent text-white" onchange="this.form.submit()" id="status-inquiries-select">
+                    <option value="">-- All Statuses --</option>
+                    {% for st_val, st_name in status_choices %}
+                        <option value="{{ st_val }}" {% if status_filter == st_val %}selected{% endif %}>{{ st_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% endif %}
+        
+        <div class="col-md-3">
+            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem; letter-spacing:0.05em;">Sort By</label>
+            <select name="sort" class="form-select border-primary bg-transparent text-white" onchange="this.form.submit()" id="sort-inquiries-select">
+                <option value="-order_date" {% if sort_by == '-order_date' %}selected{% endif %}>Newest First</option>
+                <option value="order_date" {% if sort_by == 'order_date' %}selected{% endif %}>Oldest First</option>
+                <option value="-total_amount" {% if sort_by == '-total_amount' %}selected{% endif %}>Total Price High</option>
+                <option value="total_amount" {% if sort_by == 'total_amount' %}selected{% endif %}>Total Price Low</option>
+            </select>
+        </div>
+        
+        <div class="col-md-2 d-flex align-items-end">
+            <button class="btn btn-premium-outline w-100 py-2" type="submit" id="orders-filter-btn">Apply Filter</button>
+        </div>
+    </form>
+</div>
+
+<!-- Orders Listing Grid / Table -->
+<div class="glass-card">
+    <form id="bulk-action-form" method="POST" action="{% url 'dashboard_orders' %}">
+        {% csrf_token %}
+        <input type="hidden" name="bulk_status" id="bulk-status-input">
+        
+        <div class="table-responsive">
+            <table class="table align-middle table-hover" style="font-size:0.85rem;">
+                <thead>
+                    <tr class="table-light">
+                        <th style="width: 40px;">
+                            <input type="checkbox" class="form-check-input" id="check-all-orders" onclick="toggleSelectAll(this)">
+                        </th>
+                        <th>Order ID</th>
+                        <th>Order Date</th>
+                        <th>Customer Details</th>
+                        <th>Purchased Item(s)</th>
+                        <th>Total Value</th>
+                        <th class="text-center">WhatsApp Chat</th>
+                        <th class="text-end">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                        <tr id="order-row-{{ order.id }}">
+                            <td>
+                                <input type="checkbox" name="order_ids" value="{{ order.id }}" class="form-check-input order-checkbox">
+                            </td>
+                            <td>
+                                <a href="{% url 'dashboard_order_detail' order.id %}" class="fw-bold text-primary text-decoration-none" id="order-id-link-{{ order.id }}">
+                                    #CR-{{ order.id }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="d-block text-secondary" style="font-size:0.75rem;">{{ order.order_date|date:"d M Y" }}</span>
+                                <span class="text-muted" style="font-size:0.7rem;">{{ order.order_date|date:"h:i A" }}</span>
+                            </td>
+                            <td>
+                                <span class="d-block fw-bold text" style="color: #3E0202;">{{ order.customer_name }}</span>
+                                <span class="text-muted d-block" style="font-size:0.75rem;"><i class="fa-solid fa-phone me-1 text-warning" style="font-size:0.7rem;"></i>{{ order.customer_phone }}</span>
+                                <span class="text-muted d-block text-truncate" style="font-size:0.75rem; max-width: 150px;" title="{{ order.shipping_address }}"><i class="fa-solid fa-location-dot me-1 text-warning" style="font-size:0.7rem;"></i>{{ order.shipping_address }}</span>
+                            </td>
+                            <td>
+                                {% for item in order.items.all %}
+                                    <div class="d-flex align-items-center mb-1">
+                                        {% if item.product.images.first %}
+                                            <img src="{{ item.product.images.first.image.url }}" alt="{{ item.product.name }}" class="rounded me-2" style="width: 28px; height: 36px; object-fit: cover;">
+                                        {% endif %}
+                                        <div>
+                                            <span class="d-block text-white" style="font-size:0.8rem;">{{ item.product.name }}</span>
+                                            <span class="text-muted" style="font-size:0.7rem;">Size: {{ item.variant.size }} | Qty: {{ item.quantity }}</span>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </td>
+                            <td class="text-primary fw-bold">₹{{ order.total_amount|floatformat:2 }}</td>
+                            <td class="text-center">
+                                <a href="https://api.whatsapp.com/send?phone=91{{ order.customer_phone }}&text=Hello%20{{ order.customer_name }}!%20This%20is%20Cicada%20Rise%20regarding%20your%20Order%20%23CR-{{ order.id }}." target="_blank" class="btn btn-sm btn-success py-1 px-2 border-0" style="font-size:0.75rem; background-color: #25d366 !important;" id="whatsapp-inquiry-btn-{{ order.id }}">
+                                    <i class="fa-brands fa-whatsapp me-1"></i> Contact
+                                </a>
+                            </td>
+                            <td class="text-end">
+                                <!-- Dynamic status select form -->
+                                <select class="form-select form-select-sm d-inline-block border-primary mb-1" 
+                                        name="status"
+                                        hx-post="{% url 'dashboard_update_order_status' order.id %}"
+                                        hx-target="#order-status-badge-{{ order.id }}"
+                                        hx-swap="outerHTML"
+                                        style="font-size:0.75rem; width: 120px;"
+                                        id="order-status-select-{{ order.id }}">
+                                    <option value="New" {% if order.status == 'New' %}selected{% endif %}>New</option>
+                                    <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                    <option value="Confirmed" {% if order.status == 'Confirmed' %}selected{% endif %}>Confirmed</option>
+                                    <option value="Packed" {% if order.status == 'Packed' %}selected{% endif %}>Packed</option>
+                                    <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                                    <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                    <option value="Cancelled" {% if order.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                                </select>
+                                
+                                <span class="badge bg-{% if order.status == 'New' %}info{% elif order.status == 'Pending' %}warning{% elif order.status == 'Confirmed' %}primary{% elif order.status == 'Packed' %}secondary{% elif order.status == 'Shipped' %}dark{% elif order.status == 'Delivered' %}success{% else %}danger{% endif %} d-block float-end" id="order-status-badge-{{ order.id }}">
+                                    {{ order.status }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">No order records match your selected parameters.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Toggle all order check boxes
+    function toggleSelectAll(masterCheckbox) {
+        const checkboxes = document.querySelectorAll('.order-checkbox');
+        checkboxes.forEach(cb => cb.checked = masterCheckbox.checked);
+    }
+
+    // Submit bulk action
+    function submitBulkAction(status) {
+        const checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            alert("Please select at least one order to perform a bulk action.");
+            return;
+        }
+        
+        if (confirm(`Are you sure you want to mark ${checkedBoxes.length} order(s) as '${status}'?`)) {
+            const form = document.getElementById('bulk-action-form');
+            document.getElementById('bulk-status-input').value = status;
+            form.submit();
+        }
+    }
+
+    // Clear checkboxes on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('check-all-orders').checked = false;
+        document.querySelectorAll('.order-checkbox').forEach(cb => cb.checked = false);
+    });
+</script>
+{% endblock %}

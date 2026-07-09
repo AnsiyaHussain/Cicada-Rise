@@ -1,0 +1,243 @@
+{% extends 'store/dashboard/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    /* Premium visual order timeline */
+    .timeline-steps {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        margin-top: 2rem;
+        margin-bottom: 2.5rem;
+    }
+    
+    .timeline-steps::before {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background-color: var(--border-color);
+        z-index: 1;
+    }
+
+    .timeline-step {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .timeline-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background-color: var(--bg-panel);
+        border: 2px solid var(--border-color);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1rem;
+        color: var(--text-muted);
+        transition: all 0.3s ease;
+    }
+
+    .timeline-step.completed .timeline-icon {
+        background-color: var(--primary);
+        border-color: var(--accent);
+        color: #ffffff;
+    }
+
+    .timeline-step.active .timeline-icon {
+        background-color: var(--accent);
+        border-color: var(--accent);
+        color: var(--primary);
+        box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+    }
+
+    .timeline-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin-top: 0.5rem;
+        color: var(--text-muted);
+    }
+
+    .timeline-step.completed .timeline-label, .timeline-step.active .timeline-label {
+        color: var(--accent);
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb" style="font-size:0.8rem;">
+                <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}" class="text-primary text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'dashboard_orders' %}" class="text-primary text-decoration-none">Orders</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Order Detail #CR-{{ order.id }}</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-center flex-wrap g-2">
+            <div>
+                <h1 class="font-display display-6 mb-1 text-primary">Order #CR-{{ order.id }}</h1>
+                <p class="text-secondary mb-0" style="font-size:0.85rem;">Placed on {{ order.order_date|date:"F d, Y" }} at {{ order.order_date|date:"h:i A" }}</p>
+            </div>
+            
+            <div>
+                <a href="https://api.whatsapp.com/send?phone=91{{ order.customer_phone }}&text=Hello%20{{ order.customer_name }}!%20This%20is%20Cicada%20Rise%20regarding%20your%20Order%20%23CR-{{ order.id }}." target="_blank" class="btn btn-success py-2 px-3 border-0" style="font-size:0.8rem; background-color: #25d366 !important;" id="whatsapp-order-detail-chat">
+                    <i class="fa-brands fa-whatsapp me-2"></i> WhatsApp Customer
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Status Progress Timeline -->
+<div class="glass-card">
+    <h3 class="font-display h5 mb-4 text-primary">Order Status Timeline</h3>
+    
+    {% if order.status == 'Cancelled' %}
+        <div class="alert alert-danger p-3 border-0 rounded-0 text-center" id="order-cancelled-banner">
+            <i class="fa-solid fa-circle-xmark me-2"></i> This order was marked as <strong>Cancelled</strong>. Stock allocations have been restored.
+        </div>
+    {% else %}
+        <div class="timeline-steps">
+            {% for step in steps %}
+                <div class="timeline-step 
+                     {% if forloop.counter0 < active_step %}completed
+                     {% elif forloop.counter0 == active_step %}active
+                     {% endif %}">
+                    <div class="timeline-icon">
+                        {% if forloop.counter0 < active_step %}
+                            <i class="fa-solid fa-check"></i>
+                        {% else %}
+                            {{ forloop.counter }}
+                        {% endif %}
+                    </div>
+                    <span class="timeline-label">{{ step }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+<div class="row g-4">
+    <!-- Items Purchased Table -->
+    <div class="col-lg-8">
+        <div class="glass-card">
+            <h3 class="font-display h5 mb-4 text-primary">Purchased Items</h3>
+            <div class="table-responsive">
+                <table class="table align-middle table-borderless" style="font-size:0.85rem;">
+                    <thead>
+                        <tr class="border-bottom text-muted">
+                            <th>Design</th>
+                            <th>SKU</th>
+                            <th class="text-center">Size/Color</th>
+                            <th class="text-center">Quantity</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-end">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order_items %}
+                            <tr class="border-bottom">
+                                <td class="py-3">
+                                    <div class="d-flex align-items-center">
+                                        {% if item.product.images.first %}
+                                            <img src="{{ item.product.images.first.image.url }}" alt="{{ item.product.name }}" class="rounded me-3" style="width: 45px; height: 60px; object-fit: cover;">
+                                        {% endif %}
+                                        <div>
+                                            <strong class="text-white">{{ item.product.name }}</strong>
+                                            <span class="text-muted d-block" style="font-size:0.75rem;">Category: {{ item.product.category.name }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><code>{{ item.product.sku }}</code></td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-dark border">{{ item.variant.size }}</span>
+                                    <span class="badge bg-light text-dark border">{{ item.variant.color }}</span>
+                                </td>
+                                <td class="text-center fw-medium">{{ item.quantity }}</td>
+                                <td class="text-end text-muted">₹{{ item.price|floatformat:2 }}</td>
+                                <td class="text-end text-primary fw-bold">₹{{ item.subtotal|floatformat:2 }}</td>
+                            </tr>
+                        {% endfor %}
+                        <!-- Totals -->
+                        <tr>
+                            <td colspan="4"></td>
+                            <td class="text-end text-secondary fw-bold pt-4">Total Amount:</td>
+                            <td class="text-end text-primary fs-5 fw-bold pt-4 font-display">₹{{ order.total_amount|floatformat:2 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Details & Notes -->
+    <div class="col-lg-4">
+        <!-- Customer Details -->
+        <div class="glass-card mb-4">
+            <h3 class="font-display h5 mb-3 text-primary">Client Information</h3>
+            <div class="d-flex align-items-center mb-3">
+                <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center me-3" style="width: 45px; height: 45px; font-size:1.1rem;">
+                    {{ order.customer_name|slice:":1"|upper }}
+                </div>
+                <div>
+                    <h4 class="h6 mb-0 font-body fw-bold text-white">{{ order.customer_name }}</h4>
+                    <span class="text-muted d-block" style="font-size:0.75rem;">Account User: {{ order.user.username }}</span>
+                </div>
+            </div>
+            
+            <hr>
+            
+            <div class="mb-3">
+                <span class="d-block text-secondary text-uppercase fw-bold" style="font-size:0.65rem; letter-spacing:0.05em;">Phone Number</span>
+                <span class="text-white" style="font-size:0.85rem;">{{ order.customer_phone }}</span>
+            </div>
+            
+            <div class="mb-3">
+                <span class="d-block text-secondary text-uppercase fw-bold" style="font-size:0.65rem; letter-spacing:0.05em;">Email Address</span>
+                <span class="text-white" style="font-size:0.85rem;">{{ order.user.email }}</span>
+            </div>
+            
+            <div class="mb-0">
+                <span class="d-block text-secondary text-uppercase fw-bold" style="font-size:0.65rem; letter-spacing:0.05em;">Shipping Destination</span>
+                <p class="text-white mb-0" style="font-size:0.85rem; line-height: 1.6;">{{ order.shipping_address }}</p>
+            </div>
+        </div>
+
+        <!-- Order actions & notes -->
+        <div class="glass-card">
+            <h3 class="font-display h5 mb-3 text-primary">Order Actions</h3>
+            
+            <form method="POST" action="{% url 'dashboard_update_order_status' order.id %}" id="order-status-update-form">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem; letter-spacing:0.05em;">Update Status</label>
+                    <select name="status" class="form-select border-primary bg-transparent text-white" id="order-detail-status-select">
+                        {% for status_val, status_name in order.STATUS_CHOICES %}
+                            <option value="{{ status_val }}" {% if order.status == status_val %}selected{% endif %}>{{ status_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem; letter-spacing:0.05em;">Internal Staff Notes</label>
+                    <textarea name="notes" class="form-control border-primary bg-transparent text-white" rows="4" placeholder="Add packaging tracking codes, customized sizing remarks, WhatsApp comments..." id="order-detail-notes-textarea">{{ order.admin_notes }}</textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-premium w-100 py-3" style="font-size:0.8rem;" id="order-save-actions-btn">Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

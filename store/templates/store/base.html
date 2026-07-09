@@ -1,0 +1,266 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Cicada Rise - Premium Women's Fashion{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}Cicada Rise: A premium curated women's fashion destination offering elegant, confidence-building styles from trusted wholesale partners.{% endblock %}">
+    
+    <!-- Bootstrap 5 CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="{% static 'store/css/style.css' %}">
+    
+    <!-- Premium Preloader Styles -->
+    <link rel="stylesheet" href="{% static 'store/css/luxury-preloader.css' %}">
+
+    <!-- Per-page extra head content (fonts, page-specific CSS, etc.) -->
+    {% block extra_head %}{% endblock %}
+</head>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
+    <!-- Premium Luxury Preloader -->
+    <div id="preloader" class="luxury-preloader">
+        <div class="preloader-content">
+            <!-- Logo -->
+            <img src="{% static 'store/images/cica.png' %}" alt="Cicada Rise Logo" class="preloader-logo">
+            
+            <!-- Loading Dots -->
+            <div class="loading-dots">
+                <span class="dot dot-1"></span>
+                <span class="dot dot-2"></span>
+                <span class="dot dot-3"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top navbar-custom py-3">
+        <div class="container">
+      <a class="navbar-brand d-flex align-items-center" href="{% url 'home' %}" id="brand-logo-link">
+    <img src="{% static 'store/images/cicadaimg.png' %}"
+         alt="Cicada Rise Logo"
+         class="me-2"
+         style="width:48px; height:48px; object-fit:contain;">
+
+    <span class="font-display fw-bold fs-4 tracking-wider"
+          style="letter-spacing:0.1em; color:var(--primary);">
+        CICADA <span style="font-style: italic;">RISE</span>
+    </span>
+</a>
+            
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation" id="navbar-mobile-toggler">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="{% url 'home' %}" id="nav-home">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="{% url 'shop' %}" id="nav-shop">Shop</a>
+                    </li>
+                    <!-- <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="{% url 'seasonal_wears' %}" id="nav-seasonal">Seasonal</a>
+                    </li> -->
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="{% url 'cicada_wears' %}" id="nav-cicada">Cicada Wears</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="{% url 'about' %}" id="nav-about">About Us</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="{% url 'contact' %}" id="nav-contact">Contact Us</a>
+                    </li>
+                </ul>
+                
+                <div class="navbar-icons d-flex align-items-center">
+                    <!-- Search Trigger -->
+                    <a href="{% url 'shop' %}" title="Search products" id="nav-search-icon"><i class="fa-solid fa-magnifying-glass"></i></a>
+                    
+                    {% if user.is_authenticated %}
+                        {% if user.is_staff %}
+                            <!-- Custom Admin Dashboard for Staff -->
+                            <a href="{% url 'admin_dashboard' %}" title="Admin Dashboard" id="nav-dashboard-icon" class="text-warning"><i class="fa-solid fa-chart-line"></i></a>
+                        {% endif %}
+                        <a href="{% url 'wishlist' %}" title="Wishlist" id="nav-wishlist-icon">
+                            <i class="fa-regular fa-heart"></i>
+                            <span class="badge-count wishlist-count-badge" style="display: {% if wishlist_count > 0 %}flex{% else %}none{% endif %};">{{ wishlist_count }}</span>
+                        </a>
+                        <a href="{% url 'cart' %}" title="Shopping Cart" id="nav-cart-icon">
+                            <i class="fa-solid fa-bag-shopping"></i>
+                            <span class="badge-count cart-count-badge" style="display: {% if cart_count > 0 %}flex{% else %}none{% endif %};">{{ cart_count }}</span>
+                        </a>
+                        <a href="{% url 'profile' %}" title="Customer Profile" id="nav-profile-icon"><i class="fa-regular fa-user"></i></a>
+                        <a href="{% url 'logout' %}" title="Log Out" id="nav-logout-icon"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
+                    {% else %}
+                        <a href="{% url 'login' %}" title="Sign In" id="nav-login-icon"><i class="fa-regular fa-user"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Content Spacing for Navbar -->
+    <div style="height: 80px;"></div>
+
+    <!-- Django Messages (Toasts / Alerts) -->
+    {% if messages %}
+        <div id="dashboard-alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1200; width: auto; max-width: 360px;">
+            {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show rounded-0 border-0 shadow-sm mb-2" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Main Content Area -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Floating Cicada Icon Animation -->
+    <!-- Direct deep link to WhatsApp with customized order question -->
+    <a href="https://api.whatsapp.com/send?phone=+919447771056&text=Hello%20Cicada%20Rise!%20I%20am%20interested%20in%20customized%20styling%20advice%20and%20designs." target="_blank" class="floating-cicada" title="Chat with us on WhatsApp" id="floating-whatsapp-cicada">
+        <i class="fa-brands fa-whatsapp fs-4"></i>
+    </a>
+
+    <!-- Mobile-First Bottom Nav Bar (for 90% visitors) -->
+    <div class="mobile-bottom-nav">
+        <a href="{% url 'home' %}" class="mobile-nav-item" id="mobile-nav-home">
+            <i class="fa-solid fa-house"></i>
+            <span>Home</span>
+        </a>
+        <a href="{% url 'shop' %}" class="mobile-nav-item" id="mobile-nav-shop">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Shop</span>
+        </a>
+        <a href="{% url 'wishlist' %}" class="mobile-nav-item" id="mobile-nav-wishlist">
+            <i class="fa-regular fa-heart"></i>
+            <span class="badge-count wishlist-count-badge" style="display: {% if wishlist_count > 0 %}flex{% else %}none{% endif %};">{{ wishlist_count }}</span>
+            <span>Saved</span>
+        </a>
+        <a href="{% url 'cart' %}" class="mobile-nav-item" id="mobile-nav-cart">
+            <i class="fa-solid fa-bag-shopping"></i>
+            <span class="badge-count cart-count-badge" style="display: {% if cart_count > 0 %}flex{% else %}none{% endif %};">{{ cart_count }}</span>
+            <span>Bag</span>
+        </a>
+        <a href="{% url 'profile' %}" class="mobile-nav-item" id="mobile-nav-profile">
+            <i class="fa-regular fa-user"></i>
+            <span>Account</span>
+        </a>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light pt-5 pb-4 mt-5 border-top border-secondary">
+        <div class="container text-md-left">
+            <div class="row text-md-left">
+                <div class="col-md-3 col-lg-3 col-xl-3 mx-auto mt-3">
+<h5 class="mb-4 font-weight-bold text-warning" style="letter-spacing:0.05em;">
+    <span style="font-family:'Jost', sans-serif;">CICADA</span>
+    <span style="font-family:'Cormorant Garamond', serif; font-style:italic; font-weight:600;">
+        RISE
+    </span>
+</h5>                   <p class="text-secondary" style="font-size: 0.85rem; line-height: 1.8;">
+                        A premium curated fashion brand offering elegant, thoughtfully selected womenswear. Every collection is handpicked for quality, comfort, and timeless modern style.
+                    </p>
+                </div>
+
+                <div class="col-md-2 col-lg-2 col-xl-2 mx-auto mt-3">
+                    <h6 class="text-uppercase mb-4 font-weight-bold text-warning font-display" style="font-size: 1rem;">Collections</h6>
+                    <p><a href="{% url 'shop' %}" class="text-secondary text-decoration-none hover-gold" style="font-size: 0.85rem;">All Designs</a></p>
+                    <p><a href="{% url 'seasonal_wears' %}" class="text-secondary text-decoration-none hover-gold" style="font-size: 0.85rem;">Seasonal Collection</a></p>
+                    <p><a href="{% url 'cicada_wears' %}" class="text-secondary text-decoration-none hover-gold" style="font-size: 0.85rem;">Cicada Signature</a></p>
+                    <p><a href="{% url 'shop' %}?category=heritage-collection" class="text-secondary text-decoration-none hover-gold" style="font-size: 0.85rem;">Heritage Collection</a></p>
+                </div>
+
+                <div class="col-md-3 col-lg-2 col-xl-2 mx-auto mt-3">
+                    <h6 class="text-uppercase mb-4 font-weight-bold text-warning font-display" style="font-size: 1rem;">Customer Support</h6>
+                    <p><a href="{% url 'profile' %}" class="text-secondary text-decoration-none hover-gold" style="font-size: 0.85rem;">Your Account</a></p>
+                    <p><a href="{% url 'contact' %}" class="text-secondary text-decoration-none hover-gold" style="font-size: 0.85rem;">Customized Orders</a></p>
+                    <p><a href="{% url 'about' %}" class="text-secondary text-decoration-none hover-gold" style="font-size: 0.85rem;">Our Story</a></p>
+                    <p><a href="{% url 'contact' %}" class="text-secondary text-decoration-none hover-gold" style="font-size: 0.85rem;">Store Locator</a></p>
+                </div>
+
+                <div class="col-md-4 col-lg-3 col-xl-3 mx-auto mt-3">
+                    <h6 class="text-uppercase mb-4 font-weight-bold text-warning font-display" style="font-size: 1rem;">Contact</h6>
+                    <p class="text-secondary" style="font-size: 0.85rem;"><i class="fas fa-home mr-3 text-warning"></i> karnataka, bangalore, India</p>
+                    <p class="text-secondary" style="font-size: 0.85rem;"><i class="fas fa-envelope mr-3 text-warning"></i> cicadaofficial676@gmail.com</p>
+                    <p class="text-secondary" style="font-size: 0.85rem;"><i class="fas fa-phone mr-3 text-warning"></i> +91 9447771056</p>
+                    <p class="text-secondary" style="font-size: 0.85rem;"><i class="fa-brands fa-whatsapp mr-3 text-warning"></i> WhatsApp Ordering Active</p>
+                </div>
+            </div>
+
+            <hr class="mb-4 bg-secondary">
+
+            <div class="row align-items-center">
+                <div class="col-md-7 col-lg-8">
+                    <p class="text-secondary" style="font-size: 0.8rem;">
+                        © 2026 Cicada Rise. Curated with care for the modern woman. All Rights Reserved.
+                    </p>
+                </div>
+                <div class="col-md-5 col-lg-4">
+                    <div class="text-center text-md-right">
+                        <ul class="list-unstyled list-inline mb-0">
+                            <li class="list-inline-item">
+                                <a href="https://www.instagram.com/cicadarise_official/" class="btn-floating btn-sm text-secondary" style="font-size: 23px;" id="instagram-link-footer"><i class="fab fa-instagram"></i></a>
+                            </li>
+                            <li class="list-inline-item">
+                                <a href="https://www.facebook.com/profile.php?id=61590175301557" class="btn-floating btn-sm text-secondary" style="font-size: 23px;" id="facebook-link-footer"><i class="fab fa-facebook"></i></a>
+                            </li>
+                            <li class="list-inline-item">
+                                <a href="https://in.pinterest.com/cicadaofficial676" class="btn-floating btn-sm text-secondary" style="font-size: 23px;" id="pinterest-link-footer"><i class="fab fa-pinterest"></i></a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Three.js (3D effects) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- GSAP (Animations) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    
+    <!-- Premium Luxury Preloader Animation -->
+    <script src="{% static 'store/js/luxury-preloader.js' %}"></script>
+    
+    <!-- HTMX (AJAX interactions) -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- AlpineJS (Interactive UI components) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Bootstrap 5 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS Scripts -->
+    <script src="{% static 'store/js/main.js' %}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('#dashboard-alert-container .alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    if (alert.classList.contains('show')) {
+                        const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+                        bsAlert.close();
+                    }
+                }, 2000);
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+
+</body>
+</html>

@@ -1,0 +1,119 @@
+{% extends 'store/dashboard/base.html' %}
+{% load static %}
+
+{% block dashboard_content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="font-display h3 mb-1"><i class="fa-solid fa-warehouse text-primary me-1"></i> Stock & Inventory Manager</h2>
+        <p class="text-secondary" style="font-size:0.85rem;">Edit stocks for size/color variants inline and inspect the audit trails of restock operations.</p>
+    </div>
+</div>
+
+<!-- Stock Alerts Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="glass-card border-start border-3 border-danger mb-0 h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-secondary d-block text-uppercase fw-bold" style="font-size:0.65rem; letter-spacing:0.05em;">Out of Stock Alerts</span>
+                    <h3 class="font-display h2 mt-2 mb-0" style="color:var(--text-main); font-weight:700;">{{ out_of_stock }}</h3>
+                </div>
+                <div class="fs-2 text-danger"><i class="fa-solid fa-circle-xmark"></i></div>
+            </div>
+            <span class="d-block text-muted mt-2" style="font-size:0.65rem;"><i class="fa-solid fa-triangle-exclamation"></i> Immediate restock action required</span>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="glass-card border-start border-3 border-warning mb-0 h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-secondary d-block text-uppercase fw-bold" style="font-size:0.65rem; letter-spacing:0.05em;">Low Stock Warnings</span>
+                    <h3 class="font-display h2 mt-2 mb-0" style="color:var(--text-main); font-weight:700;">{{ low_stock }}</h3>
+                </div>
+                <div class="fs-2 text-warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            </div>
+            <span class="d-block text-muted mt-2" style="font-size:0.65rem;"><i class="fa-solid fa-circle-check"></i> Stock levels are <= 5 units</span>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Inline Stock Editor Grid -->
+    <div class="col-lg-8">
+        <div class="glass-card">
+            <h3 class="font-display h5 mb-4 text-primary">Active Variant Stock Levels</h3>
+            <div class="table-responsive">
+                <table class="table align-middle table-hover" style="font-size:0.85rem;">
+                    <thead>
+                        <tr class="table-light">
+                            <th>Design</th>
+                            <th>SKU</th>
+                            <th class="text-center">Size</th>
+                            <th>Color</th>
+                            <th>Stock Level</th>
+                            <th style="width: 190px;" class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for var in variants %}
+                            <tr id="inventory-row-{{ var.id }}">
+                                <td><strong>{{ var.product.name }}</strong></td>
+                                <td><code>{{ var.product.sku }}</code></td>
+                                <td class="text-center"><span class="badge bg-light text-dark border">{{ var.size }}</span></td>
+                                <td>{{ var.color }}</td>
+                                <td>
+                                    <div id="variant-stock-display-{{ var.id }}">
+                                        {{ var.stock }}
+                                        {% if var.stock == 0 %}
+                                            <span class="badge bg-danger ms-1">Sold Out</span>
+                                        {% elif var.stock <= 5 %}
+                                            <span class="badge bg-warning text-dark ms-1">Low Stock</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <!-- Dynamic restock via HTMX -->
+                                    <form hx-post="{% url 'dashboard_restock' var.id %}" hx-swap="none" class="d-flex align-items-center justify-content-end gap-1" id="restock-form-{{ var.id }}">
+                                        <input type="number" name="quantity" value="5" class="form-control form-control-sm text-center border-primary" style="width:60px;" min="1" required id="restock-qty-input-{{ var.id }}">
+                                        <button class="btn btn-sm btn-premium py-1 px-2" type="submit" style="font-size:0.75rem;" id="restock-submit-btn-{{ var.id }}">+ Add</button>
+                                    </form>
+                                    <div id="restock-toast-{{ var.id }}"></div>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">No product variants initialized.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Restock Audit Log History -->
+    <div class="col-lg-4">
+        <div class="glass-card">
+            <h3 class="font-display h5 mb-4 text-primary"><i class="fa-solid fa-history me-1 text-warning"></i>Restock Audit Trail</h3>
+            <div class="list-group list-group-flush" style="max-height: 450px; overflow-y: auto;">
+                {% for log in restock_history %}
+                    <div class="list-group-item bg-transparent px-0 py-3 border-bottom border-secondary" id="restock-log-item-{{ log.id }}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong class="text-white" style="font-size:0.8rem;">{{ log.variant.product.name }}</strong>
+                                <span class="d-block text-muted" style="font-size:0.75rem;">Size: {{ log.variant.size }} | Color: {{ log.variant.color }}</span>
+                                <span class="d-block text-secondary" style="font-size:0.75rem;"><i class="fa-solid fa-user-gear me-1 text-warning" style="font-size:0.65rem;"></i>Restocked by: {{ log.restocked_by.username }}</span>
+                            </div>
+                            <span class="badge bg-success">+{{ log.quantity_added }} Units</span>
+                        </div>
+                        <span class="d-block text-muted text-end mt-1" style="font-size: 0.65rem;">{{ log.restocked_at|date:"d M Y, h:i A" }}</span>
+                    </div>
+                {% empty %}
+                    <div class="text-center text-muted py-3">No restock audit logs recorded.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

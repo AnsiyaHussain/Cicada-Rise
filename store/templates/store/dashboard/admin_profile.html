@@ -1,0 +1,223 @@
+{% extends 'store/dashboard/base.html' %}
+{% load static %}
+
+{% block dashboard_content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="font-display h3 mb-1"><i class="fa-solid fa-user-shield text-primary me-1"></i> Admin Profile</h2>
+        <p class="text-secondary" style="font-size:0.85rem;">Manage your personal details and admin account settings.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Admin Profile Card -->
+    <div class="col-lg-4">
+        <div class="glass-card h-100">
+            <div class="text-center mb-4">
+                <div class="avatar-circle mx-auto mb-3" style="width: 100px; height: 100px; background: linear-gradient(135deg, var(--accent), var(--primary)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: white;">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <h4 class="font-display h5 text-main mb-1">{{ admin_user.first_name|default:admin_user.username }}</h4>
+                <span class="badge bg-primary" style="font-size: 0.75rem;">Administrator</span>
+            </div>
+
+            <div class="profile-details">
+                <div class="mb-3 pb-3" style="border-bottom: 1px solid var(--border-color);">
+                    <span class="text-secondary text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 0.05em;">Email</span>
+                    <p class="text-main mb-0">{{ admin_user.email }}</p>
+                </div>
+
+                <div class="mb-3 pb-3" style="border-bottom: 1px solid var(--border-color);">
+                    <span class="text-secondary text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 0.05em;">Username</span>
+                    <p class="text-main mb-0">{{ admin_user.username }}</p>
+                </div>
+
+                <div class="mb-3 pb-3" style="border-bottom: 1px solid var(--border-color);">
+                    <span class="text-secondary text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 0.05em;">Member Since</span>
+                    <p class="text-main mb-0">{{ admin_user.date_joined|date:"d M Y" }}</p>
+                </div>
+
+                <div class="mb-0">
+                    <span class="text-secondary text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 0.05em;">Last Login</span>
+                    <p class="text-main mb-0">{{ admin_user.last_login|date:"d M Y, h:i A"|default:"Never" }}</p>
+                </div>
+            </div>
+
+            <div class="mt-4 d-grid">
+                <button class="btn btn-premium py-2" onclick="alert('Edit profile feature coming soon!')">
+                    <i class="fa-solid fa-edit me-1"></i> Edit Profile
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Statistics -->
+    <div class="col-lg-8">
+        <div class="row g-3 mb-4">
+            <!-- Staff Members -->
+            <div class="col-md-6">
+                <div class="glass-card h-100 p-4">
+                    <div class="d-flex align-items-start justify-content-between">
+                        <div>
+                            <span class="text-secondary text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 0.05em;">Total Staff Members</span>
+                            <h2 class="font-display h3 text-primary my-2">{{ staff_count }}</h2>
+                            <p class="text-secondary mb-0" style="font-size: 0.85rem;">Including administrators</p>
+                        </div>
+                        <div style="font-size: 2.5rem; color: var(--accent); opacity: 0.3;">
+                            <i class="fa-solid fa-people-group"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Contacts -->
+            <div class="col-md-6">
+                <div class="glass-card h-100 p-4">
+                    <div class="d-flex align-items-start justify-content-between">
+                        <div>
+                            <span class="text-secondary text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 0.05em;">Total Messages Received</span>
+                            <h2 class="font-display h3 text-primary my-2">{{ total_contacts }}</h2>
+                            <p class="text-secondary mb-0" style="font-size: 0.85rem;">From contact form</p>
+                        </div>
+                        <div style="font-size: 2.5rem; color: var(--accent); opacity: 0.3;">
+                            <i class="fa-solid fa-envelope"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unread Contacts -->
+            <div class="col-md-6">
+                <div class="glass-card h-100 p-4">
+                    <div class="d-flex align-items-start justify-content-between">
+                        <div>
+                            <span class="text-secondary text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 0.05em;">New Messages</span>
+                            <h2 class="font-display h3 text-warning my-2">{{ unread_contacts }}</h2>
+                            <p class="text-secondary mb-0" style="font-size: 0.85rem;">Awaiting response</p>
+                        </div>
+                        <div style="font-size: 2.5rem; color: var(--accent); opacity: 0.3;">
+                            <i class="fa-solid fa-bell"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Access -->
+            <div class="col-md-6">
+                <div class="glass-card h-100 p-4">
+                    <span class="text-secondary text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 0.05em;">Quick Actions</span>
+                    <div class="mt-3 d-flex flex-column gap-2">
+                        <a href="{% url 'dashboard_contacted_users' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fa-solid fa-envelope me-1"></i> View Messages
+                        </a>
+                        <a href="{% url 'dashboard_customers' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fa-solid fa-users me-1"></i> View Customers
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Security -->
+        <div class="glass-card">
+            <h5 class="font-display mb-3 text-main">Account Security</h5>
+            <div class="list-group list-group-flush bg-transparent">
+                <div class="list-group-item bg-transparent border-top border-bottom" style="border-color: var(--border-color);">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-main">Password</h6>
+                            <p class="text-secondary mb-0" style="font-size: 0.85rem;">Last changed long ago</p>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#changePasswordModal">Change</button>
+                    </div>
+                </div>
+                <div class="list-group-item bg-transparent">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-main">Two-Factor Authentication</h6>
+                            <p class="text-secondary mb-0" style="font-size: 0.85rem;">Not enabled</p>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="alert('2FA feature coming soon!')">Enable</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-main" id="changePasswordLabel">Change Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="changePasswordForm" method="POST" action="{% url 'dashboard_change_password' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">Current Password</label>
+                        <input type="password" class="form-control" id="currentPassword" name="current_password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="newPassword" name="new_password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirm_password" required>
+                    </div>
+                    <div id="passwordMessage" class="alert alert-info d-none" role="alert"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Change Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const messageDiv = document.getElementById('passwordMessage');
+        const submitBtn = this.querySelector('button[type="submit"]');
+        
+        submitBtn.disabled = true;
+        
+        fetch('{% url "dashboard_change_password" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('input[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                messageDiv.className = 'alert alert-success';
+                messageDiv.textContent = data.message;
+                messageDiv.classList.remove('d-none');
+                setTimeout(() => {
+                    window.location.href = '{% url "login" %}';
+                }, 2000);
+            } else {
+                messageDiv.className = 'alert alert-danger';
+                messageDiv.textContent = data.error;
+                messageDiv.classList.remove('d-none');
+                submitBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            messageDiv.className = 'alert alert-danger';
+            messageDiv.textContent = 'An error occurred. Please try again.';
+            messageDiv.classList.remove('d-none');
+            submitBtn.disabled = false;
+        });
+    });
+</script>
+{% endblock %}

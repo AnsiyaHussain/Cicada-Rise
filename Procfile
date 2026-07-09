@@ -1,0 +1,1 @@
+web: gunicorn cicada_rise.wsgi

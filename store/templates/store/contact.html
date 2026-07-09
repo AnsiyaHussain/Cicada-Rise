@@ -1,0 +1,108 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}Contact Us - Cicada Rise{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-5 text-center">
+        <div class="col-12">
+            <nav aria-label="breadcrumb" class="d-flex justify-content-center">
+                <ol class="breadcrumb" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-primary text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Contact</li>
+                </ol>
+            </nav>
+            <h1 class="font-display display-5 text- mt-2" style="color: #3E0202;">Connect With Us</h1>
+            <p class="text-muted mx-auto" style="font-size:0.9rem; max-width: 600px;">
+                Have questions about our collections, sizing details, or want to discuss a customized design? Reach out to our design team.
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-5 justify-content-center">
+        <!-- Contact details -->
+        <div class="col-md-5">
+            <div class="card border-0 bg-white p-4 shadow-sm h-100" style="border-top: 3px solid var(--primary) !important;">
+                <h3 class="font-display h4 mb-4 text" style="color: #3E0202;">Our Studio</h3>
+                
+                <div class="d-flex align-items-start mb-4">
+                    <div class="text-warning fs-4 me-3"><i class="fa-solid fa-location-dot"></i></div>
+                    <div>
+                        <h4 class="font-body fw-bold text-uppercase mb-1" style="font-size: 0.8rem; letter-spacing: 0.05em;">Location</h4>
+                        <p class="text-muted mb-0" style="font-size:0.85rem;">
+                            Cicada Rise Creative Studio,<br>
+                            joy's residensy, electronic city bangalore,<br>
+                            bangalore, karnataka, india
+                        </p>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-start mb-4">
+                    <div class="text-warning fs-4 me-3"><i class="fa-solid fa-envelope"></i></div>
+                    <div>
+                        <h4 class="font-body fw-bold text-uppercase mb-1" style="font-size: 0.8rem; letter-spacing: 0.05em;">Emails</h4>
+                        <p class="text-muted mb-0" style="font-size:0.85rem;">
+                            General Inquiries: hello@cicadarise.com<br>
+                            Order Details: orders@cicadarise.com
+                        </p>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-start mb-4">
+                    <div class="text-warning fs-4 me-3"><i class="fa-brands fa-whatsapp"></i></div>
+                    <div>
+                        <h4 class="font-body fw-bold text-uppercase mb-1" style="font-size: 0.8rem; letter-spacing: 0.05em;">WhatsApp Hotline</h4>
+                        <p class="text-muted mb-0" style="font-size:0.85rem;">
+                            Direct Order Support: +91 9447771056
+                        </p>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <h4 class="font-display h5 mb-3 text" style="color: #3E0202;">Custom Orders Philosophy</h4>
+                <p class="text-muted" style="font-size: 0.85rem; line-height: 1.6;">
+                    Because our collections are thoughtfully curated and intentionally limited, we are happy to help with sizing guidance and styling advice. Simply send a WhatsApp inquiry or submit a message with your preferences.
+                </p>
+            </div>
+        </div>
+
+        <!-- Contact Form -->
+        <div class="col-md-7">
+            <div class="card border-0 bg-white p-4 shadow-sm h-100" style="border-top: 3px solid var(--gold) !important;">
+                <h3 class="font-display h4 mb-4 text" style="color: #3E0202;">Send a Message</h3>
+                
+                <form method="POST" id="contact-form">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem;">Your Name</label>
+                            <input type="text" name="name" class="form-control rounded-0 border-primary" required id="contact-name-input">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem;">Your Email</label>
+                            <input type="email" name="email" class="form-control rounded-0 border-primary" required id="contact-email-input">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem;">Phone (Optional)</label>
+                            <input type="tel" name="phone" class="form-control rounded-0 border-primary" id="contact-phone-input">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem;">Subject</label>
+                            <input type="text" name="subject" class="form-control rounded-0 border-primary" required id="contact-subject-input">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem;">Your Message</label>
+                            <textarea name="message" class="form-control rounded-0 border-primary" rows="6" required id="contact-message-input"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-premium w-100 py-3" type="submit" id="contact-submit-btn">Send Message</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

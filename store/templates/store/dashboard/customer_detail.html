@@ -1,0 +1,179 @@
+{% extends 'store/dashboard/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    /* Premium visual activity timeline */
+    .activity-timeline {
+        position: relative;
+        padding-left: 3rem;
+        margin-top: 1.5rem;
+    }
+    
+    .activity-timeline::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 20px;
+        width: 2px;
+        background-color: var(--border-color);
+    }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 2rem;
+    }
+
+    .timeline-icon-box {
+        position: absolute;
+        left: -38px;
+        top: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 0.85rem;
+        z-index: 2;
+        border: 2px solid var(--bg-main);
+    }
+
+    .timeline-date {
+        font-size: 0.7rem;
+        color: var(--beige);
+        margin-bottom: 0.2rem;
+        font-weight: 500;
+    }
+
+    .timeline-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--accent);
+        margin-bottom: 0.3rem;
+    }
+
+    .timeline-desc {
+        font-size: 0.8rem;
+        color: var(--text-main);
+        opacity: 0.8;
+        line-height: 1.5;
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb" style="font-size:0.8rem;">
+                <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}" class="text-primary text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'dashboard_customers' %}" class="text-primary text-decoration-none">Customers</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Client File: {{ profile.user.username }}</li>
+            </ol>
+        </nav>
+        
+        <h1 class="font-display display-6 text-primary mb-1">Client Profile File</h1>
+        <p class="text-secondary" style="font-size:0.85rem;">Inspect user logs, active wishlist designs, and ordering timelines.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left: Profile Summary & Wishlist -->
+    <div class="col-lg-7">
+        <!-- Profile Summary Card -->
+        <div class="glass-card mb-4 border-top border-3 border-primary">
+            <div class="d-flex align-items-center mb-4">
+                <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center me-3" style="width: 55px; height: 55px; font-size:1.4rem;">
+                    {{ profile.user.username|slice:":1"|upper }}
+                </div>
+                <div>
+                    <h3 class="font-display h4 text-white mb-0">{{ profile.user.first_name }} {{ profile.user.last_name }}</h3>
+                    <span class="text-muted" style="font-size:0.8rem;">Client Username: <code>{{ profile.user.username }}</code></span>
+                </div>
+            </div>
+            
+            <div class="row g-3">
+                <div class="col-sm-6 col-lg-3">
+                    <span class="d-block text-secondary text-uppercase fw-bold" style="font-size:0.6rem; letter-spacing:0.05em;">Phone</span>
+                    <strong class="text-white" style="font-size:0.85rem;">{{ profile.phone|default:'N/A' }}</strong>
+                </div>
+                <div class="col-sm-6 col-lg-5">
+                    <span class="d-block text-secondary text-uppercase fw-bold" style="font-size:0.6rem; letter-spacing:0.05em;">Email Address</span>
+                    <strong class="text-white" style="font-size:0.85rem; word-break: break-all;">{{ profile.user.email }}</strong>
+                </div>
+                <div class="col-sm-6 col-lg-4">
+                    <span class="d-block text-secondary text-uppercase fw-bold" style="font-size:0.6rem; letter-spacing:0.05em;">Registration Date</span>
+                    <strong class="text-white" style="font-size:0.85rem;">{{ profile.user.date_joined|date:"d M Y" }}</strong>
+                </div>
+                <div class="col-12 mt-2">
+                    <span class="d-block text-secondary text-uppercase fw-bold" style="font-size:0.6rem; letter-spacing:0.05em;">Shipping Address</span>
+                    <p class="text-white mb-0" style="font-size:0.85rem;">{{ profile.address|default:'No address entered' }}, {{ profile.city }} {{ profile.state }} - {{ profile.pin_code }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Wishlist Items Table -->
+        <div class="glass-card">
+            <h3 class="font-display h5 mb-3 text-primary"><i class="fa-regular fa-heart me-1 text-danger"></i>Wishlisted Designs</h3>
+            <div class="table-responsive">
+                <table class="table align-middle table-borderless" style="font-size:0.85rem;">
+                    <thead>
+                        <tr class="border-bottom text-muted">
+                            <th>Design</th>
+                            <th>SKU</th>
+                            <th>Collection</th>
+                            <th class="text-end">Base Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for w in wishlist_items %}
+                            <tr class="border-bottom">
+                                <td class="py-2"><strong>{{ w.product.name }}</strong></td>
+                                <td><code>{{ w.product.sku }}</code></td>
+                                <td><span class="badge bg-light text-dark border">{{ w.product.collection }}</span></td>
+                                <td class="text-end text-primary fw-bold">₹{{ w.product.price|floatformat:2 }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-3">No designs saved in wishlist.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right: Customer Lifetime Summary & Activity Timeline -->
+    <div class="col-lg-5">
+        <!-- Spending stats -->
+        <div class="glass-card border-top border-3 border-success mb-4 text-center">
+            <span class="text-secondary d-block text-uppercase fw-bold mb-1" style="font-size:0.65rem; letter-spacing:0.05em;">Client Lifetime Value (CLV)</span>
+            <span class="metric-number text-success fs-1">₹{{ total_spending|floatformat:2 }}</span>
+            <span class="d-block text-muted mt-1" style="font-size:0.7rem;">Aggregated completed/confirmed orders</span>
+        </div>
+
+        <!-- Activity Timeline -->
+        <div class="glass-card">
+            <h3 class="font-display h5 mb-3 text-primary"><i class="fa-solid fa-clock-rotate-left me-1 text-warning"></i>Client Activity Log</h3>
+            <div class="activity-timeline">
+                {% for log in timeline %}
+                    <div class="timeline-item">
+                        <div class="timeline-icon-box {{ log.icon }}">
+                            <!-- Renders circular color indicators based on activity -->
+                            <i class="fa-solid {% if 'Registered' in log.title %}fa-user-plus{% elif 'Order' in log.title %}fa-bag-shopping{% else %}fa-heart{% endif %}"></i>
+                        </div>
+                        <div class="timeline-date">{{ log.date|date:"d M Y, h:i A" }}</div>
+                        <h4 class="timeline-title">{{ log.title }}</h4>
+                        <p class="timeline-desc">{{ log.desc }}</p>
+                    </div>
+                {% empty %}
+                    <div class="text-center text-muted py-3">No activity logs recorded.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

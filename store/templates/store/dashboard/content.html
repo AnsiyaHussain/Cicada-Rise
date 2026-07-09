@@ -1,0 +1,117 @@
+{% extends 'store/dashboard/base.html' %}
+{% load static %}
+
+{% block dashboard_content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="font-display h3 mb-1"><i class="fa-solid fa-sliders text-primary me-1"></i> Brand Configuration & Banners</h2>
+        <p class="text-secondary" style="font-size:0.85rem;">Update the checkout hotlines, bank accounts, and edit homepage banner summaries.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- settings details -->
+    <div class="col-lg-6">
+        <div class="glass-card border-top border-3 border-gold h-100">
+            <h3 class="font-display h4 text-primary mb-4"><i class="fa-solid fa-gears text-warning me-1"></i>System Config & Payments</h3>
+            
+            <form method="POST" id="settings-brand-form">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <!-- WhatsApp -->
+                    <div class="col-12">
+                        <label class="form-label text-secondary text-uppercase fw-bold mb-1" style="font-size:0.65rem;">WhatsApp Order Phone Number</label>
+                        <input type="text" name="whatsapp_number" value="{{ brand_settings.whatsapp_number }}" class="form-control" required placeholder="9447771056" id="settings-whatsapp-input">
+                        <span class="text-muted d-block mt-1" style="font-size: 0.7rem;"><i class="fa-solid fa-info-circle"></i> Used directly for Buy Now and Cart Checkout WhatsApp redirects.</span>
+                    </div>
+                    
+                    <hr class="my-3">
+                    
+                    <!-- Bank details -->
+                    <h4 class="font-body fw-bold text-uppercase text-secondary mb-0" style="font-size:0.75rem; letter-spacing:0.05em;">Direct Bank Transfer Details</h4>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label text-secondary text-uppercase fw-bold mb-1" style="font-size:0.65rem;">Account Name</label>
+                        <input type="text" name="bank_holder" value="{{ brand_settings.bank_holder }}" class="form-control" required id="settings-bank-holder">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label text-secondary text-uppercase fw-bold mb-1" style="font-size:0.65rem;">Account Number</label>
+                        <input type="text" name="bank_account" value="{{ brand_settings.bank_account }}" class="form-control" required id="settings-bank-acc">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label text-secondary text-uppercase fw-bold mb-1" style="font-size:0.65rem;">Bank/IFSC Code</label>
+                        <input type="text" name="bank_ifsc" value="{{ brand_settings.bank_ifsc }}" class="form-control" required id="settings-bank-ifsc">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label text-secondary text-uppercase fw-bold mb-1" style="font-size:0.65rem;">Branch Name</label>
+                        <input type="text" name="bank_branch" value="{{ brand_settings.bank_branch }}" class="form-control" required id="settings-bank-branch">
+                    </div>
+                    
+                    <div class="col-12 mt-4">
+                        <!-- Hidden inputs for content fields to avoid losing them on settings post -->
+                        <input type="hidden" name="hero_title" value="{{ brand_settings.hero_title }}">
+                        <input type="hidden" name="hero_subtitle" value="{{ brand_settings.hero_subtitle }}">
+                        <input type="hidden" name="about_title" value="{{ brand_settings.about_title }}">
+                        <input type="hidden" name="about_text" value="{{ brand_settings.about_text }}">
+                        
+                        <button class="btn btn-premium w-100 py-3" type="submit" id="settings-save-btn">Save System Configuration</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Editorial Contents -->
+    <div class="col-lg-6">
+        <div class="glass-card border-top border-3 border-primary h-100">
+            <h3 class="font-display h4 text-primary mb-4"><i class="fa-solid fa-pen-fancy text-warning me-1"></i>Homepage Editorial Content</h3>
+            
+            <form method="POST" id="settings-content-form">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <!-- Hidden inputs for configurations to avoid losing them on content post -->
+                    <input type="hidden" name="whatsapp_number" value="{{ brand_settings.whatsapp_number }}">
+                    <input type="hidden" name="bank_holder" value="{{ brand_settings.bank_holder }}">
+                    <input type="hidden" name="bank_account" value="{{ brand_settings.bank_account }}">
+                    <input type="hidden" name="bank_ifsc" value="{{ brand_settings.bank_ifsc }}">
+                    <input type="hidden" name="bank_branch" value="{{ brand_settings.bank_branch }}">
+                    
+                    <!-- Hero Title -->
+                    <div class="col-12">
+                        <label class="form-label text-secondary text-uppercase fw-bold mb-1" style="font-size:0.65rem;">Hero Landing Heading</label>
+                        <input type="text" name="hero_title" value="{{ brand_settings.hero_title }}" class="form-control" required id="settings-hero-title">
+                    </div>
+                    
+                    <!-- Hero Subtitle -->
+                    <div class="col-12">
+                        <label class="form-label text-secondary text-uppercase fw-bold mb-1" style="font-size:0.65rem;">Hero Landing Summary Paragraph</label>
+                        <textarea name="hero_subtitle" class="form-control" rows="3" required id="settings-hero-subtitle">{{ brand_settings.hero_subtitle }}</textarea>
+                    </div>
+                    
+                    <hr class="my-3">
+                    
+                    <!-- About Us -->
+                    <h4 class="font-body fw-bold text-uppercase text-secondary mb-0" style="font-size:0.75rem; letter-spacing:0.05em;">Our Story Row</h4>
+                    
+                    <div class="col-12">
+                        <label class="form-label text-secondary text-uppercase fw-bold mb-1" style="font-size:0.65rem;">Our Story Heading</label>
+                        <input type="text" name="about_title" value="{{ brand_settings.about_title }}" class="form-control" required id="settings-about-title">
+                    </div>
+                    
+                    <div class="col-12">
+                        <label class="form-label text-secondary text-uppercase fw-bold mb-1" style="font-size:0.65rem;">Our Story Narrative</label>
+                        <textarea name="about_text" class="form-control" rows="5" required id="settings-about-text">{{ brand_settings.about_text }}</textarea>
+                    </div>
+                    
+                    <div class="col-12 mt-4">
+                        <button class="btn btn-premium w-100 py-3" type="submit" id="content-save-btn">Update Editorial Content</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

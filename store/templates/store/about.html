@@ -1,0 +1,119 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}Our Story & Philosophy - Cicada Rise{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="position-relative overflow-hidden py-5 text-center text-white" style="background: linear-gradient(to right, rgba(91, 26, 20, 0.95), rgba(91, 26, 20, 0.8)), url('{% static 'store/images/veranda.jpg' %}'); background-attachment: fixed; background-size: cover; background-position: center;">
+    <div class="container py-5">
+        <span class="text-uppercase text-warning tracking-widest font-body fw-bold" style="font-size:0.75rem; letter-spacing:0.3em;">The Philosophy</span>
+        <h1 class="font-display display-3 fw-bold mt-2" style="color: #D8B59A;">Elegant Curation, Modern Confidence</h1>
+        <p class="lead mx-auto text mt-3" style="max-width: 600px; font-size:1.1rem; font-weight:300;color:rgb(214, 171, 171)">
+            A premium fashion brand that carefully selects elegant women's clothing from trusted suppliers, creating a refined edit for every season.
+        </p>
+    </div>
+</div>
+
+<!-- Story Section -->
+<div class="container py-5 my-5">
+    <div class="row align-items-center g-5">
+        <div class="col-md-6">
+            <span class="text-uppercase text-secondary tracking-widest font-body fw-bold" style="font-size:0.75rem; letter-spacing:0.2em;">Our Story</span>
+            <h2 class="display-6 font-display mt-2 mb-4">Every Woman Has a Season to Rise</h2>
+            
+            <p class="text-muted" style="line-height:1.8; font-size:0.95rem;">
+                <strong>Cicada Rise began with three children</strong> who grew up watching their mothers—women who worked tirelessly, put their families first, and quietly carried dreams of their own. We saw their strength in the little things: their resilience, their sacrifices, their creativity, and the love they poured into everything they did. Yet, like so many women, much of their story remained unseen.
+            </p>
+            
+            <p class="text-muted mt-4" style="line-height:1.8; font-size:0.95rem;">
+                Those moments stayed with us and inspired us to build something meaningful.
+            </p>
+            
+            <p class="text-muted mt-4" style="line-height:1.8; font-size:0.95rem;">
+                <strong>Like the cicada,</strong> which spends years growing quietly beneath the surface before rising, transforming, and taking flight, we believe every woman has her own season to rise. Growth is often silent. Confidence is built through patience. Transformation comes from embracing who you are.
+            </p>
+            
+            <p class="text-muted mt-4" style="line-height:1.8; font-size:0.95rem;">
+                At <strong>Cicada Rise,</strong> we celebrate the quiet resilience of women who are stepping beyond the unseen, turning their skills into confidence and their dreams into independence. Our collections are more than clothing—they are a reminder that every woman deserves to feel seen, empowered, and beautiful in every chapter of her journey.
+            </p>
+        </div>
+        <div class="col-md-6">
+            <div class="p-2" style="border: 1px solid var(--gold);">
+                <img src="{% static 'store/images/veranda.jpg' %}" alt="Elegant veranda fashion scene" class="img-fluid shadow-lg" style="width: 100%; height: 400px; object-fit: cover;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Philosophy Statement -->
+<div class="py-5" style="background-color: rgba(62, 2, 2, 0.03); border-top: 1px solid var(--light-gray); border-bottom: 1px solid var(--light-gray);">
+    <div class="container py-5 text-center">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <p class="font-display" style="font-size: 1.3rem; line-height: 2; color: var(--primary); font-weight: 300;">
+                    <em style="font-weight: 400;">Every stitch tells a story.</em>
+                </p>
+                <p class="font-display" style="font-size: 1.3rem; line-height: 2; color: var(--primary); font-weight: 300;">
+                    <em style="font-weight: 400;">Every outfit carries purpose.</em>
+                </p>
+                <p class="font-display" style="font-size: 1.3rem; line-height: 2; color: var(--primary); font-weight: 300;">
+                    <em style="font-weight: 400;">Every woman has a season to rise.</em>
+                </p>
+                <p class="font-display mt-4" style="font-size: 1.1rem; letter-spacing: 0.1em; color: var(--primary); font-weight: 500;">
+                    Wear the Story of You.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Values Row -->
+<div class="py-5" style="background-color: var(--white); border-top: 1px solid var(--light-gray); border-bottom: 1px solid var(--light-gray);">
+    <div class="container py-4 text-center">
+        <h2 class="font-display display-6 mb-5">Our Pillars of Curation</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="px-3">
+                    <i class="fa-solid fa-tree text-warning fs-1 mb-3"></i>
+                    <h3 class="font-display h5 mb-3">Inspired by Nature</h3>
+                    <p class="text-muted" style="font-size:0.85rem; line-height:1.7;">
+                        Our color palettes—warm maroons, soft forest tans, golden olive, and sun-bleached creams—draw direct inspiration from the warmth of natural light and elevated modern interiors.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="px-3">
+                    <i class="fa-solid fa-hand-fist text-warning fs-1 mb-3"></i>
+                    <h3 class="font-display h5 mb-3">Limited Collection Integrity</h3>
+                    <p class="text-muted" style="font-size:0.85rem; line-height:1.7;">
+                        We curate smaller runs and seasonal drops so each launch delivers premium pieces chosen for quality, fit, and a modern wardrobe story.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="px-3">
+                    <i class="fa-solid fa-gem text-warning fs-1 mb-3"></i>
+                    <h3 class="font-display h5 mb-3">Cinematic Aesthetic</h3>
+                    <p class="text-muted" style="font-size:0.85rem; line-height:1.7;">
+                        Each style is selected to evoke emotion and elegance with refined silhouettes, rich textures, and elevated everyday glamour.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5 my-5 text-center">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <span class="text-uppercase text-secondary tracking-widest font-body fw-bold" style="font-size:0.75rem; letter-spacing:0.2em;">Curated Collections</span>
+            <h2 class="display-6 font-display mt-2 mb-4">Selected With Care</h2>
+            <p class="text-muted mb-5" style="line-height: 1.8; font-size:0.95rem;">
+                We partner with trusted wholesale suppliers to handpick premium clothing that represents modern ethnic and contemporary style. Every collection is chosen for elegant wearability, thoughtful detail, and long-lasting appeal.
+            </p>
+            <a href="{% url 'shop' %}" class="btn btn-premium" id="about-explore-btn">Shop the Curated Edit</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

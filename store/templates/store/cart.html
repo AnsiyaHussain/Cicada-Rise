@@ -1,0 +1,158 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}My Bag - Cicada Rise{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-5">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-primary text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Shopping Bag</li>
+                </ol>
+            </nav>
+            <h1 class="font-display display-5 text" style="color: #3E0202;">Shopping Bag</h1>
+            <p class="text-muted">Review items in your bag before starting the WhatsApp ordering process.</p>
+        </div>
+    </div>
+
+    {% if cart.items.exists %}
+        <div class="row g-4">
+            <!-- Cart Items Grid -->
+            <div class="col-lg-8">
+                <div class="card border-0 bg-white p-4 shadow-sm mb-4" style="border-top: 3px solid var(--primary) !important;">
+                    <div class="table-responsive">
+                        <table class="table align-middle table-borderless mb-0">
+                            <thead>
+                                <tr class="border-bottom text-muted" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">
+                                    <th>Product</th>
+                                    <th>Size/Color</th>
+                                    <th>Quantity</th>
+                                    <th class="text-end">Subtotal</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in cart.items.all %}
+                                    <tr class="border-bottom" id="cart-item-row-{{ item.id }}">
+                                        <td class="py-3">
+                                            <div class="d-flex align-items-center">
+                                                {% if item.product.images.first %}
+                                                    <img src="{{ item.product.images.first.image.url }}" alt="{{ item.product.name }}" class="rounded me-3" style="width: 60px; height: 80px; object-fit: cover;">
+                                                {% else %}
+                                                    <img src="{% static 'store/images/veranda.jpg' %}" alt="{{ item.product.name }}" class="rounded me-3" style="width: 60px; height: 80px; object-fit: cover;">
+                                                {% endif %}
+                                                <div>
+                                                    <h4 class="h6 mb-1 font-body fw-bold"><a href="{% url 'product_detail' item.product.slug %}" class="text-primary text-decoration-none">{{ item.product.name }}</a></h4>
+                                                    <span class="text-muted" style="font-size: 0.75rem;">Code: {{ item.product.sku }}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border">{{ item.variant.size }}</span>
+                                            <span class="badge bg-light text-dark border">{{ item.variant.color }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="input-group" style="width: 100px; border: 1px solid var(--primary); font-size:0.85rem;">
+                                                <button class="btn btn-sm btn-outline-secondary border-0 rounded-0" 
+                                                        type="button"
+                                                        hx-post="{% url 'update_cart' item.id %}" 
+                                                        hx-vals='{"action": "decrement"}'
+                                                        hx-swap="none"
+                                                        id="cart-dec-btn-{{ item.id }}">-</button>
+                                                <div class="form-control border-0 text-center bg-transparent py-1 px-0" id="cart-item-qty-{{ item.id }}">{{ item.quantity }}</div>
+                                                <button class="btn btn-sm btn-outline-secondary border-0 rounded-0" 
+                                                        type="button"
+                                                        hx-post="{% url 'update_cart' item.id %}" 
+                                                        hx-vals='{"action": "increment"}'
+                                                        hx-swap="none"
+                                                        id="cart-inc-btn-{{ item.id }}">+</button>
+                                            </div>
+                                        </td>
+                                        <td class="text-end fw-medium text-dark" id="cart-item-subtotal-{{ item.id }}">
+                                            ₹{{ item.subtotal|floatformat:2 }}
+                                        </td>
+                                        <td class="text-end">
+                                            <button class="btn btn-link text-danger p-0 border-0" 
+                                                    hx-delete="{% url 'remove_from_cart' item.id %}" 
+                                                    hx-target="#cart-item-row-{{ item.id }}" 
+                                                    hx-swap="delete"
+                                                    title="Remove Item"
+                                                    id="cart-remove-btn-{{ item.id }}">
+                                                <i class="fa-regular fa-trash-can"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Policies Reminder Alert box (Requested by User) -->
+                <div class="p-4 bg-white border border-warning shadow-sm" style="border-left: 4px solid var(--gold) !important; font-size: 0.8rem;" id="cart-policies-reminder">
+                    <h5 class="h6 text-primary font-body fw-bold text-uppercase mb-2" style="font-size:0.75rem; letter-spacing:0.05em;">
+                        <i class="fa-solid fa-circle-info me-1"></i> Ordering & Return Policies
+                    </h5>
+                    <ul class="text-muted ps-3 mb-0" style="line-height:1.6;">
+                        <li><strong>WhatsApp Status Confirmation:</strong> Since checkout routes via WhatsApp, your profile order history status will transition to "Confirmed" once our team manually verifies the invoice over chat.</li>
+                        <li><strong>Color Disclaimer:</strong> Fabric colors may vary slightly due to cinematic photographic lighting or your monitor settings.</li>
+                        <li><strong>Return & Exchange Policy:</strong> Exchanges can only be completed within <strong>24 hours of delivery receipt</strong>. A continuous, uncut <strong>unboxing video</strong> is mandatory as proof.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Summary Card -->
+            <div class="col-lg-4">
+                <div class="card border-0 bg-white p-4 shadow-sm" style="border-top: 3px solid var(--gold) !important;">
+                    <h3 class="font-display h4 mb-4 text-primary">Bag Summary</h3>
+                    
+                    <div class="d-flex justify-content-between mb-3" style="font-size:0.9rem;">
+                        <span class="text-muted">Cart Subtotal:</span>
+                        <strong class="text-dark" id="cart-total-price">₹{{ cart.total_price|floatformat:2 }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3" style="font-size:0.9rem;">
+                        <span class="text-muted">Shipping Charges:</span>
+                        <span class="text-success fw-medium">Free (Promotional)</span>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between mb-4">
+                        <span class="font-body fw-bold text-uppercase text-secondary" style="font-size:0.8rem; letter-spacing:0.05em;">Total Estimated:</span>
+                        <strong class="text-primary fs-5 font-display" id="cart-total-price-summary">₹{{ cart.total_price|floatformat:2 }}</strong>
+                    </div>
+
+                    <!-- Address warning -->
+                    {% if not user.profile.phone or not user.profile.address %}
+                        <div class="alert alert-warning py-3 px-3 rounded-0 border-0 shadow-sm mb-3" style="font-size:0.8rem;" id="cart-profile-alert">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i> 
+                            Please complete your <a href="{% url 'profile' %}" class="fw-bold text-dark">Shipping Profile</a> before checking out.
+                        </div>
+                        <button class="btn btn-premium w-100 py-3" disabled id="disabled-checkout-btn">Checkout Via WhatsApp</button>
+                    {% else %}
+                        <form method="POST" action="{% url 'checkout_cart' %}" id="cart-checkout-form">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-premium w-100 py-3" id="cart-checkout-submit">
+                                <i class="fa-brands fa-whatsapp me-2"></i> Checkout Via WhatsApp
+                            </button>
+                        </form>
+                    {% endif %}
+                    
+                    <div class="text-center mt-3">
+                        <a href="{% url 'shop' %}" class="text-secondary text-decoration-none" style="font-size:0.8rem;" id="cart-continue-shop-link"><i class="fa-solid fa-arrow-left me-2"></i>Continue Shopping</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fa-solid fa-bag-shopping text-warning fs-1 mb-3"></i>
+            <p class="text-muted">Your Shopping Bag is empty.</p>
+            <a href="{% url 'shop' %}" class="btn btn-premium" id="cart-start-shop-btn">Explore Collections</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

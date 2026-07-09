@@ -1,0 +1,61 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}My Saved Designs - Cicada Rise{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-5">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-primary text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Saved Designs</li>
+                </ol>
+            </nav>
+            <h1 class="font-display display-5 text" style="color: #3E0202;">My Wishlist</h1>
+            <p class="text-muted">Review and checkout designs you've saved for later.</p>
+        </div>
+    </div>
+
+    <div class="row g-4 row-cols-2 row-cols-md-3 row-cols-lg-4" id="wishlist-container">
+        {% for item in wishlist_items %}
+            <div class="col" id="wishlist-item-col-{{ item.product.id }}">
+                <div class="product-card">
+                    <div class="product-image-wrapper">
+                        {% if item.product.images.first %}
+                            <img src="{{ item.product.images.first.image.url }}" alt="{{ item.product.name }}" class="product-img">
+                        {% else %}
+                            <img src="{% static 'store/images/veranda.jpg' %}" alt="{{ item.product.name }}" class="product-img">
+                        {% endif %}
+                        
+                        <!-- Remove button using HTMX to delete the column container directly -->
+                        <button class="product-wishlist-btn text-danger" 
+                                hx-post="{% url 'toggle_wishlist' item.product.id %}"
+                                hx-target="#wishlist-item-col-{{ item.product.id }}"
+                                hx-swap="delete"
+                                title="Remove from Wishlist"
+                                id="wishlist-remove-btn-{{ item.product.id }}">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <div class="product-card-body">
+                        <span class="product-card-category">{{ item.product.category.name }}</span>
+                        <h3 class="product-card-title"><a href="{% url 'product_detail' item.product.slug %}">{{ item.product.name }}</a></h3>
+                        <div class="product-card-price mb-2">₹{{ item.product.base_price|floatformat:2 }}</div>
+                        <div class="mt-auto">
+                            <a href="{% url 'product_detail' item.product.slug %}" class="btn btn-premium-outline btn-sm w-100 py-2" style="font-size:0.75rem;" id="wishlist-view-btn-{{ item.product.id }}">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12 text-center py-5 w-100">
+                <i class="fa-regular fa-heart text-warning fs-1 mb-3"></i>
+                <p class="text-muted">Your Wishlist is empty.</p>
+                <a href="{% url 'shop' %}" class="btn btn-premium" id="wishlist-start-shop-btn">Find Designs to Save</a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,201 @@
+{% extends 'store/dashboard/base.html' %}
+{% load static %}
+
+{% block dashboard_content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-sm-6">
+        <h2 class="font-display h3 mb-1"><i class="fa-solid fa-envelope text-primary me-1"></i> Contact Messages</h2>
+        <p class="text-secondary" style="font-size:0.85rem;">Manage and respond to user inquiries from the contact form.</p>
+    </div>
+</div>
+
+<!-- Status Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="glass-card p-3 text-center">
+            <h5 class="font-display h6 text-white mb-1">New Messages</h5>
+            <h2 class="font-display h3 text-warning">{{ new_count }}</h2>
+            <small class="text-secondary">Awaiting response</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card p-3 text-center">
+            <h5 class="font-display h6 text-white mb-1">Contacted</h5>
+            <h2 class="font-display h3 text-info">{{ contacted_count }}</h2>
+            <small class="text-secondary">Already replied</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card p-3 text-center">
+            <h5 class="font-display h6 text-white mb-1">Resolved</h5>
+            <h2 class="font-display h3 text-success">{{ resolved_count }}</h2>
+            <small class="text-secondary">Issue closed</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card p-3 text-center">
+            <h5 class="font-display h6 text-white mb-1">Total Messages</h5>
+            <h2 class="font-display h3 text-primary">{{ contacts.count }}</h2>
+            <small class="text-secondary">All inquiries</small>
+        </div>
+    </div>
+</div>
+
+<!-- Search & Filtering -->
+<div class="glass-card mb-4">
+    <form method="GET" class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem; letter-spacing:0.05em;">Search Messages</label>
+            <div class="input-group">
+                <span class="input-group-text bg-transparent border-end-0 border-primary" style="color:var(--accent);"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" name="q" value="{{ search_query }}" class="form-control border-start-0 border-primary bg-transparent" placeholder="Name, Email, Phone...">
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem; letter-spacing:0.05em;">Filter by Status</label>
+            <select name="status" class="form-select border-primary bg-transparent" onchange="this.form.submit()">
+                <option value="">-- All Statuses --</option>
+                {% for val, name in contact_status_choices %}
+                    <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-2 d-flex align-items-end">
+            <button class="btn btn-premium-outline w-100 py-2" type="submit">Search</button>
+        </div>
+    </form>
+</div>
+
+<!-- Messages Table -->
+<div class="glass-card">
+    <div class="table-responsive">
+        <table class="table align-middle table-hover" style="font-size:0.85rem;">
+            <thead>
+                <tr class="table-light">
+                    <th>Name & Email</th>
+                    <th>Phone</th>
+                    <th>Subject</th>
+                    <th>Message Preview</th>
+                    <th>Received</th>
+                    <th>Status</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for contact in contacts %}
+                    <tr id="contact-row-{{ contact.id }}">
+                        <td>
+                            <div>
+                                <span class="d-block fw-bold text-white">{{ contact.name }}</span>
+                                <span class="text-muted d-block" style="font-size:0.75rem;">{{ contact.email }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="text-secondary">{{ contact.phone|default:"N/A" }}</span>
+                        </td>
+                        <td>
+                            <span class="text-white" style="font-size:0.85rem;">{{ contact.subject|truncatewords:5 }}</span>
+                        </td>
+                        <td>
+                            <span class="text-muted" style="font-size:0.8rem; max-width:200px; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                {{ contact.message|truncatewords:10 }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="text-secondary" style="font-size:0.75rem;">
+                                {{ contact.created_at|date:"d M Y" }}<br>
+                                <small>{{ contact.created_at|time:"h:i A" }}</small>
+                            </span>
+                        </td>
+                        <td>
+                            <form method="POST" action="{% url 'dashboard_update_contact_status' contact.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <select name="status" class="form-select form-select-sm d-inline-block" style="width: 120px; font-size:0.75rem;" onchange="this.form.submit()">
+                                    {% for val, name in contact_status_choices %}
+                                        <option value="{{ val }}" {% if contact.status == val %}selected{% endif %}>{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                        </td>
+                        <td class="text-end">
+                            <a href="#" class="btn btn-sm btn-outline-primary py-1 px-2" data-bs-toggle="modal" data-bs-target="#contactModal{{ contact.id }}" style="font-size:0.75rem;">
+                                <i class="fa-solid fa-eye me-1"></i> View
+                            </a>
+                        </td>
+                    </tr>
+
+                    <!-- Contact Detail Modal -->
+                    <div class="modal fade" id="contactModal{{ contact.id }}" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content" style="background: rgba(30, 30, 40, 0.95); border: 1px solid var(--border-color);">
+                                <div class="modal-header border-bottom" style="border-color: var(--border-color);">
+                                    <h5 class="modal-title">Message from {{ contact.name }}</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-4">
+                                        <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">From</label>
+                                        <p class="text-white mb-0">{{ contact.name }} ({{ contact.email }})</p>
+                                    </div>
+
+                                    {% if contact.phone %}
+                                        <div class="mb-4">
+                                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Phone</label>
+                                            <p class="text-white mb-0">
+                                                <a href="tel:{{ contact.phone }}" class="text-decoration-none">{{ contact.phone }}</a>
+                                            </p>
+                                        </div>
+                                    {% endif %}
+
+                                    <div class="mb-4">
+                                        <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Subject</label>
+                                        <p class="text-white mb-0">{{ contact.subject }}</p>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Message</label>
+                                        <div class="p-3 rounded" style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color);">
+                                            <p class="text-white mb-0" style="white-space: pre-wrap;">{{ contact.message }}</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Received</label>
+                                            <p class="text-white mb-0">{{ contact.created_at|date:"d M Y, h:i A" }}</p>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Current Status</label>
+                                            <span class="badge bg-{% if contact.status == 'New' %}warning{% elif contact.status == 'Contacted' %}info{% elif contact.status == 'Resolved' %}success{% else %}danger{% endif %}">
+                                                {{ contact.status }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer border-top" style="border-color: var(--border-color);">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <a href="mailto:{{ contact.email }}" class="btn btn-primary">
+                                        <i class="fa-solid fa-reply me-1"></i> Reply via Email
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            {% if search_query or status_filter %}
+                                No messages match your search criteria.
+                            {% else %}
+                                No contact messages yet.
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}Sign In - Cicada Rise{% endblock %}
+
+{% block content %}
+<div class="container py-5 my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card border-1 bg-white p-4 p-md-5 shadow-lg" style="border-top: 0px solid var(--primary) !important; margin-top: -80px;">
+                <div class="text-center mb-4">
+                    <img src="{% static 'store/images/logo.jpg' %}" alt="Cicada Rise Logo" class="rounded-circle mb-3" style="width:65px; height:65px; object-fit:cover;">
+                    <h1 class="font-display h3 text text-uppercase" style="letter-spacing:0.05em;color:#3E0202">Welcome Back</h1>
+                    <p class="text-muted" style="font-size:0.85rem;">Sign in to access your bag, saved designs, and order inquiries.</p>
+                </div>
+
+                <form method="POST" id="login-form">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="username" class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem; letter-spacing:0.05em;">Username</label>
+                        <input type="text" name="username" class="form-control rounded-0 border-primary py-2 px-3" required id="username" placeholder="Enter username">
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem; letter-spacing:0.05em;">Password</label>
+                        <input type="password" name="password" class="form-control rounded-0 border-primary py-2 px-3" required id="password" placeholder="Enter password">
+                    </div>
+                    <button class="btn btn-premium w-100 py-3 mb-3" type="submit" id="login-submit-btn">Sign In</button>
+                </form>
+
+                <div class="text-center mt-3">
+                    <p class="text-muted mb-0" style="font-size:0.85rem;">New to Cicada Rise? <a href="{% url 'register' %}" class="text-primary fw-bold text-decoration-none" id="register-link-login">Create an Account</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

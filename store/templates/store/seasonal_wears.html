@@ -1,0 +1,70 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}Seasonal Wears - Cicada Rise{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-5">
+        <div class="col-12 text-center">
+            <nav aria-label="breadcrumb" class="d-flex justify-content-center">
+                <ol class="breadcrumb" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-primary text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'shop' %}" class="text-primary text-decoration-none">Shop</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Seasonal Wears</li>
+                </ol>
+            </nav>
+            <span class="text-uppercase text-secondary tracking-widest font-body fw-bold" style="font-size: 0.75rem; letter-spacing: 0.25em;">Nature's Transitions</span>
+            <h1 class="font-display display-4 text-primary mt-2">Seasonal Collection</h1>
+            <p class="text-muted mx-auto" style="font-size:0.9rem; max-width: 600px;">
+                Lightweight seasonal styles selected for the changing rhythms of modern life. Premium, comfortable, and beautifully tailored for effortless elegance.
+            </p>
+        </div>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="row row-cols-2 row-cols-lg-4 g-3 g-md-4">
+        {% for prod in products %}
+            <div class="col">
+                <div class="product-card" id="product-card-seasonal-{{ prod.id }}">
+                    <div class="product-image-wrapper">
+                        {% if prod.images.first %}
+                            <img src="{{ prod.images.first.image.url }}" alt="{{ prod.name }}" class="product-img">
+                        {% else %}
+                            <img src="{% static 'store/images/veranda.jpg' %}" alt="{{ prod.name }}" class="product-img">
+                        {% endif %}
+                        
+                        <span class="product-badge bg-warning text-dark">Seasonal Collection</span>
+                        
+                        {% if user.is_authenticated %}
+                            <button class="product-wishlist-btn" 
+                                    hx-post="{% url 'toggle_wishlist' prod.id %}" 
+                                    hx-swap="innerHTML"
+                                    title="Save to Wishlist"
+                                    id="wishlist-btn-seasonal-{{ prod.id }}">
+                                <i class="far fa-heart"></i>
+                            </button>
+                        {% else %}
+                            <a href="{% url 'login' %}?next={{ request.path }}" class="product-wishlist-btn" title="Save to Wishlist" id="wishlist-login-btn-seasonal-{{ prod.id }}"><i class="far fa-heart"></i></a>
+                        {% endif %}
+                    </div>
+                    <div class="product-card-body">
+                        <span class="product-card-category">{{ prod.category.name }}</span>
+                        <h3 class="product-card-title"><a href="{% url 'product_detail' prod.slug %}">{{ prod.name }}</a></h3>
+                        <div class="product-card-price mb-2">₹{{ prod.base_price|floatformat:2 }}</div>
+                        <div class="mt-auto">
+                            <a href="{% url 'product_detail' prod.slug %}" class="btn btn-premium-outline btn-sm w-100 py-2" style="font-size:0.75rem;" id="product-details-link-seasonal-{{ prod.id }}">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12 text-center py-5">
+                <i class="fa-solid fa-leaf text-warning fs-1 mb-3"></i>
+                <p class="text-muted">No items are currently listed in our Seasonal Collection. Please check back soon!</p>
+                <a href="{% url 'shop' %}" class="btn btn-premium mt-3" id="seasonal-back-to-shop-btn">Explore Full Shop</a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

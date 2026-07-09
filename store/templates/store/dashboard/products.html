@@ -1,0 +1,269 @@
+{% extends 'store/dashboard/base.html' %}
+{% load static %}
+
+{% block dashboard_content %}
+<style>
+    #productModal .modal-dialog {
+        max-height: calc(100vh - 2rem);
+    }
+    #productModal .modal-content {
+        max-height: calc(100vh - 2rem);
+    }
+    #productModal .modal-body {
+        max-height: calc(100vh - 220px);
+        overflow-y: auto;
+    }
+</style>
+<div class="row mb-4 align-items-center">
+    <div class="col-sm-6">
+        <h2 class="font-display h3 mb-1"><i class="fa-solid fa-shirt text-primary me-1"></i> Product Management</h2>
+        <p class="text-secondary" style="font-size:0.85rem;">Manage the luxury catalog, update pricing, upload multiple photos, and input fabric specifications.</p>
+    </div>
+    <div class="col-sm-6 text-sm-end">
+        <button class="btn btn-premium py-2 px-3" data-bs-toggle="modal" data-bs-target="#productModal" onclick="clearProductModal()" id="add-product-btn">
+            <i class="fa-solid fa-plus me-1"></i> Add New Product
+        </button>
+    </div>
+</div>
+
+<!-- Products Grid (Luxury Card Layout) -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="products-grid">
+    {% for prod in products %}
+        <div class="col" id="product-col-{{ prod.id }}">
+            <div class="glass-card mb-0 h-100 d-flex flex-column" style="padding: 1rem;">
+                <div class="position-relative overflow-hidden mb-3 bg-dark" style="padding-top: 125%; border: 1px solid var(--border-color);">
+                    {% if prod.images.first %}
+                        <img src="{{ prod.images.first.image.url }}" alt="{{ prod.name }}" class="position-absolute top-0 start-0 w-100 h-100" style="object-fit: cover;">
+                    {% else %}
+                        <img src="{% static 'store/images/veranda.jpg' %}" alt="{{ prod.name }}" class="position-absolute top-0 start-0 w-100 h-100" style="object-fit: cover;">
+                    {% endif %}
+                    
+                    <span class="position-absolute top-2 start-2 badge bg-primary" style="font-size: 0.65rem; text-transform: uppercase;">{{ prod.collection }}</span>
+                </div>
+                
+                <span class="text-secondary text-uppercase fw-bold" style="font-size:0.65rem; letter-spacing:0.05em;">SKU: {{ prod.sku }}</span>
+                <h4 class="font-display h5 text-white my-2">{{ prod.name }}</h4>
+                <span class="text-muted" style="font-size: 0.75rem;">Category: {{ prod.category.name }}</span>
+                
+                <div class="my-3 font-display fs-5 fw-bold text-primary">
+                    {% if prod.sale_price %}
+                        <span class="text-muted text-decoration-line-through me-2" style="font-size: 0.85rem;">₹{{ prod.base_price }}</span>
+                        <span>₹{{ prod.sale_price }}</span>
+                    {% else %}
+                        <span>₹{{ prod.base_price }}</span>
+                    {% endif %}
+                </div>
+                
+                <hr class="mt-auto mb-3">
+                
+                <div class="d-flex justify-content-between align-items-center flex-wrap g-2">
+                    <span class="text-muted" style="font-size:0.75rem;">Total Stock: <strong class="text-white">{{ prod.total_stock }}</strong></span>
+                    <div class="d-flex gap-1 align-items-center">
+                        <button type="button" class="btn btn-sm btn-premium-outline py-1 px-2" 
+                                style="font-size:0.75rem;"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#productModal" 
+                                data-product-id="{{ prod.id }}"
+                                data-product-name="{{ prod.name|escapejs }}"
+                                data-product-sku="{{ prod.sku|escapejs }}"
+                                data-product-category="{{ prod.category.id }}"
+                                data-product-base-price="{{ prod.base_price }}"
+                                data-product-sale-price="{{ prod.sale_price|default:'' }}"
+                                data-product-collection="{{ prod.collection|escapejs }}"
+                                data-product-description="{{ prod.description|escapejs }}"
+                                data-product-fabric="{{ prod.fabric_details|escapejs }}"
+                                data-product-care="{{ prod.care_instructions|escapejs }}"
+                                data-product-featured="{{ prod.is_featured|yesno:'true,false' }}"
+                                data-product-seasonal="{{ prod.is_seasonal|yesno:'true,false' }}"
+                                data-product-cicada="{{ prod.is_cicada_wear|yesno:'true,false' }}"
+                                onclick="populateProductModal(this)"
+                                id="edit-product-btn-{{ prod.id }}">
+                            Edit
+                        </button>
+                        
+                        <!-- Delete Product Trigger (Requested by User) -->
+                        <form method="POST" action="{% url 'dashboard_product_delete' prod.id %}" onsubmit="return confirm('Are you sure you want to permanently delete this product? All variants and log records will be lost.');" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2" style="font-size:0.75rem;" id="delete-product-btn-{{ prod.id }}">
+                                <i class="fa-regular fa-trash-can"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12 text-center py-5">
+            <p class="text-muted">No products found in the catalog database. Click "Add New Product" to seed.</p>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Modal Form for Add/Edit Product -->
+<div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-primary" style="background-color: var(--bg-panel); color: var(--text-main);">
+            <div class="modal-header border-bottom border-primary py-3">
+                <h3 class="modal-title font-display h4 text-primary" id="productModalLabel">Add New Design</h3>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <form method="POST" enctype="multipart/form-data" action="{% url 'dashboard_products' %}" id="product-editor-form">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <input type="hidden" name="product_id" id="form-product-id">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Design Name</label>
+                            <input type="text" name="name" class="form-control" required id="form-name">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">SKU (Code)</label>
+                            <input type="text" name="sku" class="form-control" required id="form-sku">
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Category</label>
+                            <select name="category" class="form-select" required id="form-category">
+                                {% for cat in categories %}
+                                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Collection</label>
+                            <select name="collection" class="form-select" required id="form-collection">
+                                {% for col_val, col_name in collections %}
+                                    <option value="{{ col_val }}">{{ col_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Base Price (₹)</label>
+                            <input type="number" step="0.01" name="base_price" class="form-control" required id="form-base-price">
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Sale Price (₹ - Optional)</label>
+                            <input type="number" step="0.01" name="sale_price" class="form-control" id="form-sale-price">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Initial Stock per Size</label>
+                            <input type="number" min="0" step="1" name="initial_stock" class="form-control" id="form-initial-stock" value="5">
+                            <small class="text-secondary" style="font-size:0.75rem;">Default stock for each size when creating a new product.</small>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Upload Images (Multiple supported)</label>
+                            <input type="file" name="images" class="form-control" multiple onchange="previewImages(this)" id="form-images-input">
+                            <div id="image-preview-container" class="d-flex flex-wrap gap-2 mt-2"></div>
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Description</label>
+                            <textarea name="description" class="form-control" rows="3" required id="form-description"></textarea>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Fabric & Materials Details</label>
+                            <textarea name="fabric_details" class="form-control" rows="3" placeholder="Premium cotton blends, smooth silks, and elevated textures..." id="form-fabric"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Wash & Care Instructions</label>
+                            <textarea name="care_instructions" class="form-control" rows="3" placeholder="Dry clean only, hand wash cold, iron reverse..." id="form-care"></textarea>
+                        </div>
+                        
+                        <div class="col-12 d-flex gap-4 mt-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_featured" id="form-featured">
+                                <label class="form-check-label text-white" for="form-featured" style="font-size:0.8rem;">Feature on Homepage</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_seasonal" id="form-seasonal">
+                                <label class="form-check-label text-white" for="form-seasonal" style="font-size:0.8rem;">Seasonal Collection</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_cicada_wear" id="form-cicada">
+                                <label class="form-check-label text-white" for="form-cicada" style="font-size:0.8rem;">Cicada Signature</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer border-top border-primary py-3">
+                    <button type="button" class="btn btn-premium-outline py-2" data-bs-dismiss="modal" id="form-cancel-btn">Cancel</button>
+                    <button type="submit" class="btn btn-premium py-2 px-4" id="form-submit-btn">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+ 
+{% block scripts %}
+<script>
+    function previewImages(input) {
+        const container = document.getElementById('image-preview-container');
+        container.innerHTML = '';
+        if (input.files) {
+            Array.from(input.files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'img-thumbnail';
+                    img.style.width = '70px';
+                    img.style.height = '90px';
+                    img.style.objectFit = 'cover';
+                    container.appendChild(img);
+                }
+                reader.readAsDataURL(file);
+            });
+        }
+    }
+
+    function clearProductModal() {
+        document.getElementById('productModalLabel').innerText = "Add New Design";
+        document.getElementById('form-product-id').value = '';
+        document.getElementById('form-name').value = '';
+        document.getElementById('form-sku').value = '';
+        document.getElementById('form-category').value = '';
+        document.getElementById('form-base-price').value = '';
+        document.getElementById('form-sale-price').value = '';
+        document.getElementById('form-collection').value = '';
+        document.getElementById('form-description').value = '';
+        document.getElementById('form-fabric').value = '';
+        document.getElementById('form-care').value = '';
+        document.getElementById('form-featured').checked = false;
+        document.getElementById('form-seasonal').checked = false;
+        document.getElementById('form-cicada').checked = false;
+        document.getElementById('form-images-input').value = '';
+        document.getElementById('image-preview-container').innerHTML = '';
+    }
+
+    function populateProductModal(button) {
+        const dataset = button.dataset;
+        const decodeString = (value) => value ? value.replace(/\\n/g, '\n') : '';
+        document.getElementById('productModalLabel').innerText = "Edit Design Specifications";
+        document.getElementById('form-product-id').value = dataset.productId || '';
+        document.getElementById('form-name').value = decodeString(dataset.productName || '');
+        document.getElementById('form-sku').value = decodeString(dataset.productSku || '');
+        document.getElementById('form-category').value = dataset.productCategory || '';
+        document.getElementById('form-base-price').value = dataset.productBasePrice || '';
+        document.getElementById('form-sale-price').value = dataset.productSalePrice || '';
+        document.getElementById('form-collection').value = dataset.productCollection || '';
+        document.getElementById('form-description').value = decodeString(dataset.productDescription || '');
+        document.getElementById('form-fabric').value = decodeString(dataset.productFabric || '');
+        document.getElementById('form-care').value = decodeString(dataset.productCare || '');
+        document.getElementById('form-featured').checked = dataset.productFeatured === 'true';
+        document.getElementById('form-seasonal').checked = dataset.productSeasonal === 'true';
+        document.getElementById('form-cicada').checked = dataset.productCicada === 'true';
+        document.getElementById('form-initial-stock').value = '';
+        document.getElementById('form-images-input').value = '';
+        document.getElementById('image-preview-container').innerHTML = '';
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,560 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}Cicada Rise - Premium Curated Women's Fashion{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CICADA RISE — Hero design system
+   All selectors are namespaced with "cr-" so they never collide
+   with the rest of the site's style.css (category-card,
+   product-card, btn-premium, etc. below are reused AS-IS from
+   the live stylesheet, not redefined here).
+   ============================================================ */
+:root{
+  --cr-burgundy:#5B1A14;
+  --cr-burgundy-deep:#3A0E09;
+  --cr-burgundy-light:#7A2218;
+  --cr-gold:#C4993A;
+  --cr-gold-light:#E8C56A;
+  --cr-cream:#F8F3EB;
+  --cr-ivory:#FAF7F2;
+  --cr-text-muted:#7A7069;
+}
+.cr-font-display{font-family:'Playfair Display',serif;}
+.cr-body-font{font-family:'Jost',sans-serif;}
+
+/* HERO */
+.cr-hero-wrapper{position:relative;height:100vh;min-height:620px;display:flex;align-items:center;overflow:hidden;background:var(--cr-burgundy-deep);}
+.cr-hero-overlay{position:absolute;inset:0;background:linear-gradient(110deg,rgba(58,14,9,0.88) 40%,rgba(58,14,9,0.45) 100%);z-index:2;}
+.cr-hero-content{position:relative;z-index:3;color:#fff;}
+.cr-hero-eyebrow{font-family:'Jost',sans-serif;font-size:0.7rem;font-weight:500;letter-spacing:0.35em;text-transform:uppercase;color:var(--cr-gold-light);margin-bottom:1rem;display:block;}
+.cr-hero-title{font-family:'Playfair Display',serif;font-size:clamp(2.4rem,5.5vw,4.2rem);font-weight:700;line-height:1.12;color:#fff;margin-bottom:1.5rem;}
+.cr-hero-title em{font-style:italic;color:var(--cr-gold-light);}
+.cr-hero-subtitle{font-family:'Jost',sans-serif;font-size:0.92rem;font-weight:300;line-height:1.85;color:rgba(255,255,255,0.72);max-width:500px;margin-bottom:2.4rem;}
+.cr-btn-gold{background:var(--cr-gold);color:var(--cr-burgundy-deep);font-family:'Jost',sans-serif;font-size:0.7rem;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;padding:0.9rem 2.2rem;border:none;border-radius:0;transition:all 0.3s;display:inline-block;text-decoration:none;}
+.cr-btn-gold:hover{background:var(--cr-gold-light);color:var(--cr-burgundy-deep);}
+.cr-btn-outline-hero{background:transparent;color:#fff;font-family:'Jost',sans-serif;font-size:0.7rem;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;padding:0.9rem 2.2rem;border:1px solid rgba(255,255,255,0.4);border-radius:0;transition:all 0.3s;display:inline-block;text-decoration:none;}
+.cr-btn-outline-hero:hover{background:rgba(255,255,255,0.1);color:#fff;border-color:rgba(255,255,255,0.7);}
+.cr-hero-scroll-line{position:absolute;bottom:2.5rem;left:50%;transform:translateX(-50%);z-index:3;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.cr-hero-scroll-line span{font-family:'Jost',sans-serif;font-size:0.6rem;letter-spacing:0.25em;text-transform:uppercase;color:rgba(255,255,255,0.45);}
+.cr-scroll-bar{width:1px;height:48px;background:linear-gradient(to bottom,var(--cr-gold),transparent);animation:crScrollDrop 2s ease-in-out infinite;}
+@keyframes crScrollDrop{0%{opacity:0;transform:scaleY(0);transform-origin:top;}50%{opacity:1;transform:scaleY(1);}100%{opacity:0;transform:scaleY(1);transform-origin:bottom;}}
+
+.cr-hero-stats{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:3;display:flex;flex-direction:column;gap:0;padding-right:3.5rem;}
+.cr-hero-stat-item{text-align:right;padding:1.2rem 0;border-bottom:1px solid rgba(196,153,58,0.2);}
+.cr-hero-stat-item:last-child{border-bottom:none;}
+.cr-hero-stat-num{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:var(--cr-gold-light);display:block;line-height:1;}
+.cr-hero-stat-label{font-family:'Jost',sans-serif;font-size:0.62rem;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.45);display:block;margin-top:4px;}
+
+/* MARQUEE */
+.cr-marquee-ribbon{background:var(--cr-gold);padding:0.6rem 0;overflow:hidden;white-space:nowrap;}
+.cr-marquee-track{display:inline-flex;animation:crMarquee 20s linear infinite;}
+.cr-marquee-track span{font-family:'Jost',sans-serif;font-size:0.65rem;font-weight:600;letter-spacing:0.25em;text-transform:uppercase;color:var(--cr-burgundy-deep);padding:0 2.5rem;}
+.cr-marquee-track span::before{content:'✦';margin-right:2.5rem;font-size:0.5rem;}
+@keyframes crMarquee{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+/* STORY */
+.cr-story-section{padding:7rem 0;background:#fff;position:relative;}
+.cr-story-image-frame{position:relative;}
+.cr-story-image-frame::before{content:'';position:absolute;inset:-12px;border:1px solid var(--cr-gold);z-index:0;}
+.cr-story-image-frame img{position:relative;z-index:1;width:100%;height:480px;object-fit:cover;}
+.cr-story-accent-text{font-family:'Playfair Display',serif;font-size:7rem;font-weight:700;color:rgba(91,26,20,0.045);position:absolute;bottom:-1rem;left:-2rem;line-height:1;pointer-events:none;user-select:none;z-index:0;}
+.cr-section-eyebrow{font-family:'Jost',sans-serif;font-size:0.68rem;font-weight:500;letter-spacing:0.3em;text-transform:uppercase;color:var(--cr-text-muted);}
+.cr-section-title{font-family:'Playfair Display',serif;font-size:clamp(1.9rem,3.5vw,2.8rem);font-weight:700;line-height:1.2;color:var(--cr-burgundy);}
+.cr-section-body{font-family:'Jost',sans-serif;font-size:0.9rem;font-weight:300;line-height:1.9;color:var(--cr-text-muted);}
+.cr-gold-line{width:48px;height:2px;background:var(--cr-gold);margin:1rem 0 1.5rem;}
+.cr-gold-line-center{margin:1rem auto 1.5rem;}
+
+/* SPHERE / PILLARS */
+.cr-sphere-section{position:relative;overflow:hidden;background:var(--cr-burgundy-deep);padding:6rem 0;}
+#cr-sphere-canvas{position:absolute;inset:0;width:100%;height:100%;opacity:0.35;}
+.cr-sphere-content{position:relative;z-index:2;text-align:center;color:#fff;}
+.cr-sphere-content .cr-section-title{color:var(--cr-gold-light);}
+.cr-pillars-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:3rem;}
+.cr-pillar-card{background:rgba(255,255,255,0.04);border:1px solid rgba(196,153,58,0.18);padding:2.5rem 2rem;text-align:center;transition:all 0.4s;}
+.cr-pillar-card:hover{background:rgba(196,153,58,0.08);border-color:rgba(196,153,58,0.45);transform:translateY(-4px);}
+.cr-pillar-icon{width:52px;height:52px;border:1px solid var(--cr-gold);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.4rem;color:var(--cr-gold);}
+.cr-pillar-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff;margin-bottom:0.8rem;}
+.cr-pillar-text{font-family:'Jost',sans-serif;font-size:0.8rem;font-weight:300;line-height:1.75;color:rgba(255,255,255,0.5);}
+
+/* COLLECTIONS — reuses real .category-card markup, just adds a label style override */
+.cr-collections-section{padding:6rem 0;background:var(--cr-cream);}
+
+/* PRODUCTS — caption styling to match cicada aesthetic over the real .product-card markup */
+.cr-products-section{padding:6rem 0;background:#fff;}
+
+/* PARTICLE / WHY */
+.cr-particle-section{position:relative;padding:7rem 0;background:var(--cr-ivory);overflow:hidden;}
+#cr-particle-canvas{position:absolute;inset:0;width:100%;height:100%;}
+.cr-particle-content{position:relative;z-index:2;}
+.cr-why-item{text-align:center;padding:2rem;}
+.cr-why-num{font-family:'Playfair Display',serif;font-size:2.5rem;font-weight:700;color:rgba(91,26,20,0.1);display:block;line-height:1;}
+.cr-why-icon{color:var(--cr-gold);font-size:1.4rem;margin:0.5rem 0 0.9rem;}
+.cr-why-title{font-family:'Playfair Display',serif;font-size:1rem;color:var(--cr-burgundy);margin-bottom:0.6rem;}
+.cr-why-text{font-family:'Jost',sans-serif;font-size:0.8rem;font-weight:300;line-height:1.75;color:var(--cr-text-muted);}
+
+/* TESTIMONIAL */
+.cr-testimonial-section{padding:6rem 0;background:var(--cr-burgundy-deep);}
+.cr-testimonial-quote{font-family:'Playfair Display',serif;font-size:clamp(1.15rem,2.5vw,1.55rem);font-style:italic;font-weight:400;color:rgba(255,255,255,0.88);line-height:1.7;text-align:center;}
+.cr-testimonial-author{font-family:'Jost',sans-serif;font-size:0.68rem;font-weight:600;letter-spacing:0.25em;text-transform:uppercase;color:var(--cr-gold);margin-top:1.5rem;text-align:center;}
+.cr-quote-mark{font-family:'Playfair Display',serif;font-size:5rem;color:var(--cr-gold);line-height:0.6;opacity:0.4;display:block;text-align:center;margin-bottom:0.5rem;}
+
+/* CTA / NEWSLETTER */
+.cr-cta-section{padding:5rem 0;background:var(--cr-cream);text-align:center;}
+.cr-cta-title{font-family:'Playfair Display',serif;font-size:clamp(2rem,4vw,3rem);font-weight:700;color:var(--cr-burgundy);margin-bottom:1rem;}
+.cr-cta-sub{font-family:'Jost',sans-serif;font-size:0.88rem;font-weight:300;color:var(--cr-text-muted);margin-bottom:2rem;}
+
+/* SCROLL FADE-UP */
+.cr-fade-up{opacity:0;transform:translateY(30px);transition:opacity 0.7s ease,transform 0.7s ease;}
+.cr-fade-up.cr-visible{opacity:1;transform:none;}
+
+@media(max-width:768px){
+  .cr-hero-stats{display:none;}
+  .cr-pillars-grid{grid-template-columns:1fr;}
+  .cr-hero-wrapper{height:90vh;}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<section class="cr-hero-wrapper">
+    <canvas id="three-canvas"></canvas>
+    <div class="cr-hero-overlay"></div>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-7 cr-hero-content">
+                <span class="cr-hero-eyebrow">Wear the Story of You</span>
+                <h1 class="cr-hero-title">
+                    {{ brand_settings.hero_title|default:"Thoughtfully Curated Fashion. Modern Elegance." }}
+                </h1>
+                <p class="cr-hero-subtitle">
+                    {{ brand_settings.hero_subtitle|default:"Cicada Rise handpicks premium women's clothing from trusted wholesale partners, offering elegant, comfortable seasonal styles designed to inspire confidence and timeless self-expression." }}
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="{% url 'shop' %}" class="cr-btn-gold" id="hero-btn-shop">Explore Collection</a>
+                    <a href="{% url 'about' %}" class="cr-btn-outline-hero" id="hero-btn-about">Our Philosophy</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- <div class="cr-hero-stats d-none d-lg-flex">
+        <div class="cr-hero-stat-item">
+            <span class="cr-hero-stat-num">{{ categories.count|default:"200+" }}</span>
+            <span class="cr-hero-stat-label">Collections</span>
+        </div>
+        <div class="cr-hero-stat-item">
+            <span class="cr-hero-stat-num">100%</span>
+            <span class="cr-hero-stat-label">Premium Fabric</span>
+        </div>
+        <div class="cr-hero-stat-item">
+            <span class="cr-hero-stat-num">5★</span>
+            <span class="cr-hero-stat-label">Client Trust</span>
+        </div>
+    </div> -->
+
+    <div class="cr-hero-scroll-line">
+        <span>Scroll</span>
+        <div class="cr-scroll-bar"></div>
+    </div>
+</section>
+
+<!-- MARQUEE RIBBON -->
+<div class="cr-marquee-ribbon">
+    <div class="cr-marquee-track">
+        <span>Curated Elegance</span>
+        <span>Limited Collections</span>
+        <span>Premium Wears</span>
+        <span>Modern Ethnic</span>
+        <span>Elegant Silhouettes</span>
+        <span>Comfortable Style</span>
+        <span>Refined Texture</span>
+        <span>Modern Femininity</span>
+        <span>Curated Elegance</span>
+        <span>Limited Collections</span>
+        <span>Premium Wears</span>
+        <span>Modern Ethnic</span>
+        <span>Elegant Silhouettes</span>
+        <span>Comfortable Style</span>
+        <span>Refined Texture</span>
+        <span>Modern Femininity</span>
+    </div>
+</div>
+
+<!-- STORY OF CICADA RISE -->
+<section class="cr-story-section">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-md-6 cr-fade-up">
+                <div class="cr-story-image-frame">
+                    <img src="{% static 'store/images/veranda.jpg' %}" alt="Elegant veranda fashion scene" class="img-fluid">
+                    <div class="cr-story-accent-text">C</div>
+                </div>
+            </div>
+            <div class="col-md-6 ps-md-5 cr-fade-up">
+                <span class="cr-section-eyebrow">The Curated Legacy</span>
+                <div class="cr-gold-line"></div>
+                <h2 class="cr-section-title mb-4">
+                    {{ brand_settings.about_title|default:"Crafted in bangalore's refined atelier, where heritage meets premium modern style." }}
+                </h2>
+                <div class="cr-section-body mb-5">
+                    {{ brand_settings.about_text|default:"Cicada Rise brings premium women's fashion to life through thoughtful design, elevated materials, and warm craftsmanship rooted in Bangalore’s timeless elegance."|linebreaksbr }}
+                </div>
+                <a href="{% url 'about' %}" class="btn btn-premium-outline" id="story-read-more-btn">Read Our Story</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- PILLARS OF CURATION -->
+<section class="cr-sphere-section">
+    <canvas id="cr-sphere-canvas"></canvas>
+    <div class="container cr-sphere-content cr-fade-up">
+        <span class="cr-section-eyebrow" style="color:rgba(196,153,58,0.7);">The Cicada Difference</span>
+        <div class="cr-gold-line cr-gold-line-center" style="background:var(--cr-gold);"></div>
+        <h2 class="cr-section-title">Pillars of Curation</h2>
+        <div class="cr-pillars-grid mt-5">
+            <div class="cr-pillar-card">
+                <div class="cr-pillar-icon"><i class="fa-solid fa-seedling"></i></div>
+                <h3 class="cr-pillar-title">Premium Quality</h3>
+                <p class="cr-pillar-text">Each piece is chosen for elevated comfort, refined detail, and lasting wearability, making everyday dressing feel special.</p>
+            </div>
+            <div class="cr-pillar-card">
+                <div class="cr-pillar-icon"><i class="fa-solid fa-hands-holding"></i></div>
+                <h3 class="cr-pillar-title">Curated Selection</h3>
+                <p class="cr-pillar-text">We handpick seasonal collections and trusted wholesale designs to offer a balanced edit of modern ethnic and contemporary fashion.</p>
+            </div>
+            <div class="cr-pillar-card">
+                <div class="cr-pillar-icon"><i class="fa-solid fa-scissors"></i></div>
+                <h3 class="cr-pillar-title">Custom Tailoring</h3>
+                <p class="cr-pillar-text">From XS to XXL, with WhatsApp-direct fitting consultations. Premium fashion should fit every body, precisely.</p>
+            </div>
+            <div class="cr-pillar-card">
+                <div class="cr-pillar-icon"><i class="fa-solid fa-gem"></i></div>
+                <h3 class="cr-pillar-title">Cinematic Aesthetics</h3>
+                <p class="cr-pillar-text">Deep maroons, warm ivories, and golden olive form an elegant palette for pieces that feel timeless and expressive.</p>
+            </div>
+            <div class="cr-pillar-card">
+                <div class="cr-pillar-icon"><i class="fa-solid fa-leaf"></i></div>
+                <h3 class="cr-pillar-title">Limited Collection Integrity</h3>
+                <p class="cr-pillar-text">Our edit is intentionally small and seasonal, ensuring every garment is thoughtfully chosen and presented as a premium discovery.</p>
+            </div>
+            <div class="cr-pillar-card">
+                <div class="cr-pillar-icon"><i class="fa-solid fa-star"></i></div>
+                <h3 class="cr-pillar-title">Premium for Every Occasion</h3>
+                <p class="cr-pillar-text">Luxury casuals, contemporary fusion, evening elegance, and everyday premium for the modern Indian woman.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- COLLECTIONS (live categories) -->
+<section class="cr-collections-section">
+    <div class="container">
+        <div class="text-center mb-5 cr-fade-up">
+            <span class="cr-section-eyebrow">Curated for You</span>
+            <div class="cr-gold-line cr-gold-line-center"></div>
+            <h2 class="cr-section-title">Explore Collections</h2>
+        </div>
+        <div class="row cr-fade-up">
+            {% for cat in categories %}
+                <div class="col-md-6 col-lg-3">
+                    <div class="category-card" onclick="window.location.href='{% url 'shop' %}?category={{ cat.slug }}'" id="category-card-{{ cat.slug }}">
+                        {% if cat.image %}
+                            <div class="category-img" style="background-image: url('{{ cat.image.url }}');"></div>
+                        {% else %}
+                            <div class="category-img" style="background-image: url('{% static 'store/images/veranda.jpg' %}');"></div>
+                        {% endif %}
+                        <div class="category-gradient"></div>
+                        <div class="category-info">
+                            <h3>{{ cat.name }}</h3>
+                            <p>{{ cat.description|truncatewords:8 }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="text-center mt-5 cr-fade-up">
+            <a href="{% url 'shop' %}" class="btn btn-premium" id="collections-view-all">View All Collections</a>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURED NEW ARRIVALS (live products) -->
+<section class="cr-products-section">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-end mb-5 cr-fade-up">
+            <div>
+                <span class="cr-section-eyebrow">Fresh Silhouettes</span>
+                <div class="cr-gold-line"></div>
+                <h2 class="cr-section-title">New Arrivals</h2>
+            </div>
+            <a href="{% url 'shop' %}" class="btn btn-premium-outline d-none d-md-inline-block" id="new-arrivals-view-all">View All Products</a>
+        </div>
+
+        <div class="row cr-fade-up">
+            {% for prod in featured_products %}
+                <div class="col-md-6 col-lg-3">
+                    <div class="product-card" id="product-card-{{ prod.id }}">
+                        <div class="product-image-wrapper">
+                            {% if prod.images.first %}
+                                <img src="{{ prod.images.first.image.url }}" alt="{{ prod.name }}" class="product-img">
+                            {% else %}
+                                <img src="{% static 'store/images/veranda.jpg' %}" alt="{{ prod.name }}" class="product-img">
+                            {% endif %}
+
+                            <span class="product-badge">Featured</span>
+
+                            {% if user.is_authenticated %}
+                                <button class="product-wishlist-btn"
+                                        hx-post="{% url 'toggle_wishlist' prod.id %}"
+                                        hx-swap="innerHTML"
+                                        title="Save to Wishlist"
+                                        id="wishlist-btn-{{ prod.id }}">
+                                    <i class="far fa-heart"></i>
+                                </button>
+                            {% else %}
+                                <a href="{% url 'login' %}?next={% url 'shop' %}" class="product-wishlist-btn" title="Save to Wishlist" id="wishlist-login-btn-{{ prod.id }}"><i class="far fa-heart"></i></a>
+                            {% endif %}
+                        </div>
+                        <div class="product-card-body">
+                            <span class="product-card-category">{{ prod.category.name }}</span>
+                            <h3 class="product-card-title"><a href="{% url 'product_detail' prod.slug %}">{{ prod.name }}</a></h3>
+                            <div class="product-card-price mb-2">₹{{ prod.base_price|floatformat:2 }}</div>
+                            <div class="mt-auto">
+                                <a href="{% url 'product_detail' prod.slug %}" class="btn btn-premium-outline btn-sm w-100 py-2" style="font-size:0.75rem;" id="product-details-link-{{ prod.id }}">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-12 text-center text-muted py-4">New arrivals are being curated. Check back soon.</div>
+            {% endfor %}
+        </div>
+
+        <div class="text-center d-md-none mt-4">
+            <a href="{% url 'shop' %}" class="btn btn-premium-outline btn-sm w-100 py-3" id="mobile-view-all-btn">View All Products</a>
+        </div>
+    </div>
+</section>
+
+<!-- WHY CHOOSE US (particle canvas) -->
+<section class="cr-particle-section">
+    <canvas id="cr-particle-canvas"></canvas>
+    <div class="container cr-particle-content">
+        <div class="text-center mb-5 cr-fade-up">
+            <span class="cr-section-eyebrow">Why Choose Cicada Rise</span>
+            <div class="cr-gold-line cr-gold-line-center"></div>
+            <h2 class="cr-section-title" style="color:var(--cr-burgundy);">Designed for the Woman<br>Who Moves with Purpose</h2>
+        </div>
+        <div class="row g-0 cr-fade-up">
+            <div class="col-md-3 cr-why-item" style="border-right:1px solid rgba(91,26,20,0.08);">
+                <span class="cr-why-num">01</span>
+                <div class="cr-why-icon"><i class="fa-solid fa-seedling"></i></div>
+                <div class="cr-why-title">Eco-Conscious</div>
+                <p class="cr-why-text">Natural fabrics, zero waste philosophy, and conscious small-batch production.</p>
+            </div>
+            <div class="col-md-3 cr-why-item" style="border-right:1px solid rgba(91,26,20,0.08);">
+                <span class="cr-why-num">02</span>
+                <div class="cr-why-icon"><i class="fa-solid fa-hands-holding"></i></div>
+                <div class="cr-why-title">Curated Sourcing</div>
+                <p class="cr-why-text">We choose premium designs from trusted suppliers, creating a cohesive wardrobe with beautiful details and elevated fabrics.</p>
+            </div>
+            <div class="col-md-3 cr-why-item" style="border-right:1px solid rgba(91,26,20,0.08);">
+                <span class="cr-why-num">03</span>
+                <div class="cr-why-icon"><i class="fa-solid fa-scissors"></i></div>
+                <div class="cr-why-title">Custom Fit</div>
+                <p class="cr-why-text">XS–XXL with WhatsApp fitting consultations for every unique body.</p>
+            </div>
+            <div class="col-md-3 cr-why-item">
+                <span class="cr-why-num">04</span>
+                <div class="cr-why-icon"><i class="fa-solid fa-gem"></i></div>
+                <div class="cr-why-title">Timeless Design</div>
+                <p class="cr-why-text">Pieces crafted to last a decade, not a season — fashion as investment.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="cr-testimonial-section">
+    <div class="container">
+        <div class="row justify-content-center cr-fade-up">
+            <div class="col-md-8 text-center">
+                <span class="cr-section-eyebrow" style="color:rgba(196,153,58,0.6);">Client Whispers</span>
+                <div id="testimonialCarousel" class="carousel slide mt-4" data-bs-ride="carousel">
+                    <div class="carousel-inner">
+                        <div class="carousel-item active">
+                            <span class="cr-quote-mark">"</span>
+                            <p class="cr-testimonial-quote">I wore the deep maroon Anarkali to a family event and received so many compliments. The fabric felt luxurious and the fit was just right.</p>
+                            <p class="cr-testimonial-author">Devika Menon — Kochi</p>
+                        </div>
+                        <div class="carousel-item">
+                            <span class="cr-quote-mark">"</span>
+                            <p class="cr-testimonial-quote">The linen set was exactly what I wanted — breathable, elegant, and easy to style for both work and dinner. The whole experience felt very personal.</p>
+                            <p class="cr-testimonial-author">Saira Shah — Mumbai</p>
+                        </div>
+                        <div class="carousel-item">
+                            <span class="cr-quote-mark">"</span>
+                            <p class="cr-testimonial-quote">I love how the pieces feel premium without being too heavy. The detailing is beautiful and the service made choosing my outfit so much easier.</p>
+                            <p class="cr-testimonial-author">Priya Krishnamurthy — Bangalore</p>
+                        </div>
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="prev" id="testimonial-carousel-prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true" style="filter: invert(1);"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="next" id="testimonial-carousel-next">
+                        <span class="carousel-control-next-icon" aria-hidden="true" style="filter: invert(1);"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- NEWSLETTER / CTA -->
+<section class="cr-cta-section cr-fade-up">
+    <div class="container">
+        <div class="row justify-content-center text-center">
+            <div class="col-md-7">
+                <span class="cr-section-eyebrow">Join the Transformation</span>
+                <div class="cr-gold-line cr-gold-line-center"></div>
+                <h2 class="cr-cta-title">Begin Your Cicada Story</h2>
+                <p class="cr-cta-sub">Sign up to receive early editorial releases, limited collection previews, and styling inspiration from our curated edit.</p>
+                <form class="d-flex flex-column flex-sm-row gap-2 justify-content-center" onsubmit="event.preventDefault(); showToast('Subscribed! Welcome to our inner circle.'); this.reset();" id="newsletter-form">
+                    <input type="email" class="form-control rounded-0 px-4 py-3" placeholder="Enter your email address" required style="border: 1px solid var(--cr-burgundy); font-size:0.85rem;" id="newsletter-email-input">
+                    <button class="cr-btn-gold px-4 py-3" type="submit" id="newsletter-submit-btn" style="border:none;">Subscribe</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Existing rotating-crystal hero canvas (already in your codebase) -->
+<script src="{% static 'store/js/three-hero.js' %}"></script>
+
+<script>
+// =====================
+// 3D SPHERE CANVAS — "Pillars of Craftsmanship" section
+// =====================
+(function(){
+  const canvas = document.getElementById('cr-sphere-canvas');
+  if (!canvas || typeof THREE === 'undefined') return;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, canvas.offsetWidth / canvas.offsetHeight, 0.1, 100);
+  camera.position.z = 6;
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
+  renderer.setClearColor(0x000000, 0);
+
+  const sGeo = new THREE.SphereGeometry(3.5, 32, 32);
+  const sMat = new THREE.MeshBasicMaterial({ color: 0xC4993A, wireframe: true, opacity: 0.08, transparent: true });
+  const sphere = new THREE.Mesh(sGeo, sMat);
+  scene.add(sphere);
+
+  const ptGeo = new THREE.BufferGeometry();
+  const positions = [];
+  for(let i = 0; i < 300; i++){
+    positions.push((Math.random() - 0.5) * 12, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 4);
+  }
+  ptGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  const ptMat = new THREE.PointsMaterial({ color: 0xC4993A, size: 0.04, transparent: true, opacity: 0.5 });
+  scene.add(new THREE.Points(ptGeo, ptMat));
+
+  let t = 0;
+  function animate(){
+    requestAnimationFrame(animate);
+    t += 0.004;
+    sphere.rotation.y = t * 0.3;
+    sphere.rotation.x = t * 0.15;
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    const w = canvas.offsetWidth, h = canvas.offsetHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  });
+})();
+
+// =====================
+// PARTICLE CANVAS — "Why Choose Us" section
+// =====================
+(function(){
+  const canvas = document.getElementById('cr-particle-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H, pts = [];
+
+  function resize(){
+    W = canvas.width = canvas.offsetWidth;
+    H = canvas.height = canvas.offsetHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for(let i = 0; i < 55; i++){
+    pts.push({
+      x: Math.random() * 1200,
+      y: Math.random() * 500,
+      r: Math.random() * 1.8 + 0.4,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.2,
+      a: Math.random() * 0.5 + 0.15
+    });
+  }
+
+  function draw(){
+    ctx.clearRect(0, 0, W, H);
+    pts.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      if(p.x < 0) p.x = W;
+      if(p.x > W) p.x = 0;
+      if(p.y < 0) p.y = H;
+      if(p.y > H) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(196,153,58,${p.a})`;
+      ctx.fill();
+    });
+    for(let i = 0; i < pts.length; i++){
+      for(let j = i + 1; j < pts.length; j++){
+        const dx = pts[i].x - pts[j].x;
+        const dy = pts[i].y - pts[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if(dist < 120){
+          ctx.beginPath();
+          ctx.moveTo(pts[i].x, pts[i].y);
+          ctx.lineTo(pts[j].x, pts[j].y);
+          ctx.strokeStyle = `rgba(196,153,58,${0.07 * (1 - dist / 120)})`;
+          ctx.lineWidth = 0.6;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// SCROLL FADE-UP
+const crObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('cr-visible'); });
+}, { threshold: 0.12 });
+document.querySelectorAll('.cr-fade-up').forEach(el => crObserver.observe(el));
+</script>
+{% endblock %}

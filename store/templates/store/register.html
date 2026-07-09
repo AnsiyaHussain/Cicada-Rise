@@ -1,0 +1,54 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}Create Account - Cicada Rise{% endblock %}
+
+{% block content %}
+<div class="container py-5 my-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-0 bg-white p-4 p-md-5 shadow-lg" style="border-top: 0px solid var(--gold) !important;margin-top:-60px">
+                <div class="text-center mb-4">
+                    <img src="{% static 'store/images/logo.jpg' %}" alt="Cicada Rise Logo" class="rounded-circle mb-3" style="width:65px; height:65px; object-fit:cover;">
+                    <h1 class="font-display h3 text text-uppercase" style="letter-spacing:0.05em;color:#3E0202">Join Cicada Rise</h1>
+                    <p class="text-muted" style="font-size:0.85rem;">Create a client account to track orders and save your designs.</p>
+                </div>
+
+                <form method="POST" id="register-form">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger rounded-0 border-0 shadow-sm" role="alert">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="row g-3">
+                        {% for field in form %}
+                            <div class="col-md-{% if field.name == 'first_name' or field.name == 'last_name' %}6{% else %}12{% endif %}">
+                                <label for="{{ field.id_for_label }}" class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem; letter-spacing:0.05em;">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <div class="text-danger mt-1" style="font-size:0.75rem;">
+                                        {% for error in field.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <button class="btn btn-premium w-100 py-3 mt-4 mb-3" type="submit" id="register-submit-btn">Create Account</button>
+                </form>
+
+                <div class="text-center mt-3">
+                    <p class="text-muted mb-0" style="font-size:0.85rem;">Already have an account? <a href="{% url 'login' %}" class="text-primary fw-bold text-decoration-none" id="login-link-register">Sign In</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
