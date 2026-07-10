@@ -1,1 +1,1 @@
-web: gunicorn cicada_rise.wsgi
+web: gunicorn cicada_rise.wsgi:application
