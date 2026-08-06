@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: cicadarise
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn cicada_rise.wsgi:application"

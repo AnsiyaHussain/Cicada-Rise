@@ -28,11 +28,7 @@
             <div class="col">
                 <div class="product-card" id="product-card-cicada-{{ prod.id }}">
                     <div class="product-image-wrapper">
-                        {% if prod.images.first %}
-                            <img src="{{ prod.images.first.image.url }}" alt="{{ prod.name }}" class="product-img">
-                        {% else %}
-                            <img src="{% static 'store/images/veranda.jpg' %}" alt="{{ prod.name }}" class="product-img">
-                        {% endif %}
+                        <img src="{{ prod.primary_image_url }}" alt="{{ prod.name }}" class="product-img">
                         
                         <span class="product-badge">Cicada Signature</span>
                         

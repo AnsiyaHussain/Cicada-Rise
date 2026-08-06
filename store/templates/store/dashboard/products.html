@@ -76,6 +76,7 @@
                                 data-product-featured="{{ prod.is_featured|yesno:'true,false' }}"
                                 data-product-seasonal="{{ prod.is_seasonal|yesno:'true,false' }}"
                                 data-product-cicada="{{ prod.is_cicada_wear|yesno:'true,false' }}"
+                                data-product-variants="{{ prod.variants_dict_json|escapejs }}"
                                 onclick="populateProductModal(this)"
                                 id="edit-product-btn-{{ prod.id }}">
                             Edit
@@ -119,8 +120,11 @@
                             <input type="text" name="name" class="form-control" required id="form-name">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">SKU (Code)</label>
-                            <input type="text" name="sku" class="form-control" required id="form-sku">
+                            <label class="form-label text-secondary text-uppercase fw-bold d-flex justify-content-between align-items-center" style="font-size:0.65rem;">
+                                <span>SKU (Code)</span>
+                                <button type="button" class="btn btn-link p-0 text-decoration-none text-primary fw-bold" style="font-size:0.65rem;" onclick="generateSKU()" id="sku-gen-btn">Generate</button>
+                            </label>
+                            <input type="text" name="sku" class="form-control" id="form-sku" placeholder="Or leave blank to auto-gen">
                         </div>
                         
                         <div class="col-md-4">
@@ -150,16 +154,28 @@
                             <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Sale Price (₹ - Optional)</label>
                             <input type="number" step="0.01" name="sale_price" class="form-control" id="form-sale-price">
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Initial Stock per Size</label>
-                            <input type="number" min="0" step="1" name="initial_stock" class="form-control" id="form-initial-stock" value="5">
-                            <small class="text-secondary" style="font-size:0.75rem;">Default stock for each size when creating a new product.</small>
-                        </div>
-                        
-                        <div class="col-md-4">
+                        <div class="col-md-8">
                             <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Upload Images (Multiple supported)</label>
                             <input type="file" name="images" class="form-control" multiple onchange="previewImages(this)" id="form-images-input">
                             <div id="image-preview-container" class="d-flex flex-wrap gap-2 mt-2"></div>
+                        </div>
+                        
+                        <div class="col-12 mt-2">
+                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem; letter-spacing: 0.05em;">Available Sizes & Stock Control</label>
+                            <div class="row g-2 p-3 rounded" style="background-color: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
+                                {% for sz in size_choices %}
+                                    <div class="col-6 col-md-4 col-lg-2">
+                                        <div class="p-2 rounded text-center" style="background-color: var(--bg-panel); border: 1px solid rgba(255,255,255,0.08);">
+                                            <div class="form-check d-flex align-items-center justify-content-center gap-1 mb-1">
+                                                <input class="form-check-input size-checkbox" type="checkbox" name="sizes" value="{{ sz }}" id="size-check-{{ sz }}" checked>
+                                                <label class="form-check-label text-white fw-bold" for="size-check-{{ sz }}" style="font-size:0.8rem;">Size {{ sz }}</label>
+                                            </div>
+                                            <input type="number" min="0" step="1" name="stock_{{ sz }}" class="form-control form-control-sm text-center size-stock-input" id="size-stock-{{ sz }}" value="5" placeholder="Stock">
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <small class="text-secondary d-block mt-1" style="font-size:0.7rem;"><i class="fa-solid fa-circle-info me-1 text-primary"></i>Check sizes to make them visible on the customer store. Enter stock (0 stock = "Sold Out" badge).</small>
                         </div>
                         
                         <div class="col-12">
@@ -242,6 +258,14 @@
         document.getElementById('form-cicada').checked = false;
         document.getElementById('form-images-input').value = '';
         document.getElementById('image-preview-container').innerHTML = '';
+
+        // Reset sizes and stocks
+        ['S', 'M', 'L', 'XL', 'XXL', '3XL'].forEach(sz => {
+            const chk = document.getElementById('size-check-' + sz);
+            const stk = document.getElementById('size-stock-' + sz);
+            if (chk) chk.checked = true;
+            if (stk) stk.value = '5';
+        });
     }
 
     function populateProductModal(button) {
@@ -261,9 +285,46 @@
         document.getElementById('form-featured').checked = dataset.productFeatured === 'true';
         document.getElementById('form-seasonal').checked = dataset.productSeasonal === 'true';
         document.getElementById('form-cicada').checked = dataset.productCicada === 'true';
-        document.getElementById('form-initial-stock').value = '';
         document.getElementById('form-images-input').value = '';
         document.getElementById('image-preview-container').innerHTML = '';
+
+        // Populate sizes and stocks
+        let variantsObj = {};
+        if (dataset.productVariants) {
+            try {
+                variantsObj = JSON.parse(dataset.productVariants);
+            } catch(e) {
+                console.error(e);
+            }
+        }
+        ['S', 'M', 'L', 'XL', 'XXL', '3XL'].forEach(sz => {
+            const chk = document.getElementById('size-check-' + sz);
+            const stk = document.getElementById('size-stock-' + sz);
+            if (variantsObj[sz]) {
+                if (chk) chk.checked = true;
+                if (stk) stk.value = variantsObj[sz].stock;
+            } else {
+                if (chk) chk.checked = false;
+                if (stk) stk.value = '0';
+            }
+        });
+    }
+
+    function generateSKU() {
+        const nameVal = document.getElementById('form-name').value;
+        if (!nameVal) {
+            alert('Please enter a Design Name first to generate a SKU.');
+            return;
+        }
+        const initials = nameVal.split(' ')
+                                .map(w => w.replace(/[^a-zA-Z0-9]/g, ''))
+                                .filter(w => w.length > 0)
+                                .map(w => w[0].toUpperCase())
+                                .join('')
+                                .substring(0, 4);
+        const prefix = initials ? initials : 'PROD';
+        const rand = Math.floor(1000 + Math.random() * 9000);
+        document.getElementById('form-sku').value = 'CR-' + prefix + '-' + rand;
     }
 </script>
 {% endblock %}

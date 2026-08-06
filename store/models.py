@@ -51,14 +51,45 @@ class Product(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
+        if not self.sku:
+            import random
+            initials = "".join([w[0].upper() for w in self.name.split() if w.isalnum()])[:4]
+            if not initials:
+                initials = "PROD"
+            rand_num = random.randint(1000, 9999)
+            self.sku = f"CR-{initials}-{rand_num}"
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} ({self.sku})"
 
     @property
+    def price(self):
+        if self.sale_price is not None:
+            return self.sale_price
+        return self.base_price
+
+    @property
     def total_stock(self):
         return sum(variant.stock for variant in self.variants.all())
+
+    @property
+    def variants_dict_json(self):
+        import json
+        var_dict = {}
+        for v in self.variants.all():
+            var_dict[v.size] = {'stock': v.stock, 'active': True}
+        return json.dumps(var_dict)
+
+    @property
+    def primary_image_url(self):
+        primary_img = self.images.filter(is_primary=True).first() or self.images.first()
+        if primary_img and primary_img.image:
+            try:
+                return primary_img.image.url
+            except Exception:
+                return "/static/store/images/veranda.jpg"
+        return "/static/store/images/veranda.jpg"
 
     @property
     def average_rating(self):
@@ -77,24 +108,38 @@ class ProductImage(models.Model):
 
 class ProductVariant(models.Model):
     SIZE_CHOICES = [
-        ('XS', 'XS'),
         ('S', 'S'),
         ('M', 'M'),
         ('L', 'L'),
         ('XL', 'XL'),
         ('XXL', 'XXL'),
+        ('3XL', '3XL'),
     ]
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
     size = models.CharField(max_length=5, choices=SIZE_CHOICES)
     color = models.CharField(max_length=50)
+    sku = models.CharField(max_length=60, blank=True, null=True, help_text="Unique SKU for variant e.g. CR-TEST-KS-S")
     stock = models.IntegerField(default=0)
     price_override = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Set if price differs from base price")
 
     class Meta:
         unique_together = ('product', 'size', 'color')
 
+    def save(self, *args, **kwargs):
+        if not self.sku and self.product_id:
+            self.sku = f"{self.product.sku}-{self.size}"
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.product.name} - Size: {self.size}, Color: {self.color} (Stock: {self.stock})"
+        return f"{self.product.name} - Size: {self.size}, Color: {self.color} (SKU: {self.variant_sku}, Stock: {self.stock})"
+
+    @property
+    def variant_sku(self):
+        if self.sku:
+            return self.sku
+        if self.product:
+            return f"{self.product.sku}-{self.size}"
+        return ""
 
     @property
     def price(self):

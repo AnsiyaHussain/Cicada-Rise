@@ -151,3 +151,56 @@ class CicadaRiseTestCase(TestCase):
         # Verify product and variants are deleted
         self.assertFalse(Product.objects.filter(id=product_id).exists())
         self.assertEqual(ProductVariant.objects.filter(product_id=product_id).count(), 0)
+
+    def test_registration_redirect_to_login(self):
+        """Tests that user registration redirects to login page instead of auto-login."""
+        response = self.client.post(reverse('register'), {
+            'username': 'newcustomer',
+            'first_name': 'New',
+            'last_name': 'User',
+            'email': 'new@user.com',
+            'password': 'Password123!',
+            'confirm_password': 'Password123!'
+        })
+        self.assertRedirects(response, reverse('login'))
+        self.assertTrue(User.objects.filter(username='newcustomer').exists())
+
+    def test_order_pdf_export_and_deletion(self):
+        """Tests PDF report exports and order deletion functionality."""
+        order = Order.objects.create(
+            user=self.user,
+            customer_name="PDF Test Client",
+            customer_phone="9988776655",
+            shipping_address="PDF Test Address",
+            total_amount=2500.00,
+            status="New"
+        )
+        self.client.login(username='adminuser', password='adminpassword')
+
+        # 1. Download Orders List PDF
+        list_pdf_resp = self.client.get(reverse('dashboard_orders_pdf'))
+        self.assertEqual(list_pdf_resp.status_code, 200)
+        self.assertEqual(list_pdf_resp['Content-Type'], 'application/pdf')
+
+        # 2. Download Order Detail Invoice PDF
+        detail_pdf_resp = self.client.get(reverse('dashboard_order_detail_pdf', args=[order.id]))
+        self.assertEqual(detail_pdf_resp.status_code, 200)
+        self.assertEqual(detail_pdf_resp['Content-Type'], 'application/pdf')
+
+        # 3. Delete Order
+        delete_resp = self.client.post(reverse('dashboard_order_delete', args=[order.id]))
+        self.assertRedirects(delete_resp, reverse('dashboard_orders'))
+        self.assertFalse(Order.objects.filter(id=order.id).exists())
+
+        # 4. Clear Cancelled Orders
+        cancelled_order = Order.objects.create(
+            user=self.user,
+            customer_name="Cancelled Client",
+            customer_phone="1122334455",
+            shipping_address="Cancel Address",
+            total_amount=1000.00,
+            status="Cancelled"
+        )
+        clear_resp = self.client.post(reverse('dashboard_clear_cancelled_orders'))
+        self.assertRedirects(clear_resp, reverse('dashboard_orders'))
+        self.assertFalse(Order.objects.filter(id=cancelled_order.id).exists())

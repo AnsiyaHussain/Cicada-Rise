@@ -91,10 +91,19 @@
                 <p class="text-secondary mb-0" style="font-size:0.85rem;">Placed on {{ order.order_date|date:"F d, Y" }} at {{ order.order_date|date:"h:i A" }}</p>
             </div>
             
-            <div>
-                <a href="https://api.whatsapp.com/send?phone=91{{ order.customer_phone }}&text=Hello%20{{ order.customer_name }}!%20This%20is%20Cicada%20Rise%20regarding%20your%20Order%20%23CR-{{ order.id }}." target="_blank" class="btn btn-success py-2 px-3 border-0" style="font-size:0.8rem; background-color: #25d366 !important;" id="whatsapp-order-detail-chat">
-                    <i class="fa-brands fa-whatsapp me-2"></i> WhatsApp Customer
+            <div class="d-flex align-items-center gap-2">
+                <a href="{% url 'dashboard_order_detail_pdf' order.id %}" target="_blank" class="btn btn-outline-danger py-2 px-3" style="font-size:0.8rem;" id="order-detail-pdf-btn">
+                    <i class="fa-solid fa-file-pdf me-1"></i> Download PDF Invoice
                 </a>
+                <a href="https://api.whatsapp.com/send?phone=91{{ order.customer_phone }}&text=Hello%20{{ order.customer_name }}!%20This%20is%20Cicada%20Rise%20regarding%20your%20Order%20%23CR-{{ order.id }}." target="_blank" class="btn btn-success py-2 px-3 border-0" style="font-size:0.8rem; background-color: #25d366 !important;" id="whatsapp-order-detail-chat">
+                    <i class="fa-brands fa-whatsapp me-1"></i> WhatsApp Customer
+                </a>
+                <form method="POST" action="{% url 'dashboard_order_delete' order.id %}" onsubmit="return confirm('Are you sure you want to permanently delete Order #CR-{{ order.id }}?');" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-secondary py-2 px-3" style="font-size:0.8rem;" id="order-detail-delete-btn">
+                        <i class="fa-regular fa-trash-can me-1"></i> Delete Order
+                    </button>
+                </form>
             </div>
         </div>
     </div>

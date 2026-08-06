@@ -110,11 +110,7 @@
                     <div class="col">
                         <div class="product-card" id="product-card-shop-{{ prod.id }}">
                             <div class="product-image-wrapper">
-                                {% if prod.images.first %}
-                                    <img src="{{ prod.images.first.image.url }}" alt="{{ prod.name }}" class="product-img">
-                                {% else %}
-                                    <img src="{% static 'store/images/veranda.jpg' %}" alt="{{ prod.name }}" class="product-img">
-                                {% endif %}
+                                <img src="{{ prod.primary_image_url }}" alt="{{ prod.name }}" class="product-img">
                                 
                                 {% if prod.is_cicada_wear %}
                                     <span class="product-badge">Cicada Wear</span>
@@ -148,9 +144,10 @@
                     </div>
                 {% empty %}
                     <div class="col-12 text-center py-5">
-                        <i class="fa-solid fa-leaf text-warning fs-1 mb-3"></i>
-                        <p class="text-muted">We couldn't find any designs matching your criteria. Try adjusting your filter tags or search text.</p>
-                        <a href="{% url 'shop' %}" class="btn btn-premium mt-3" id="reset-shop-btn">Clear All Filters</a>
+                        <i class="fa-solid fa-hourglass-half text-warning fs-1 mb-3"></i>
+                        <h4 class="font-display h5 mt-2">New Collections Coming Soon</h4>
+                        <p class="text-muted" style="max-width: 480px; margin: 0 auto; font-size: 0.9rem; line-height: 1.6;">Our fresh handpicked designs are currently in tailoring. Try selecting another collection or check back soon!</p>
+                        <a href="{% url 'shop' %}" class="btn btn-premium mt-3 px-4 py-2" id="reset-shop-btn">Browse Active Collections</a>
                     </div>
                 {% endfor %}
             </div>

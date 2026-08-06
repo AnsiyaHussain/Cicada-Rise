@@ -4,7 +4,7 @@
 {% block title %}My Profile - Cicada Rise{% endblock %}
 
 {% block content %}
-<div class="container py-5" x-data="{ activeTab: 'orders' }">
+<div class="container py-5" x-data="{ activeTab: '{% if user_form.errors or profile_form.errors or request.GET.tab == 'details' %}details{% else %}orders{% endif %}' }">
     <div class="row mb-4">
         <div class="col-12">
             <h1 class="font-display display-5 text" style="color: #3E0202;">My Account</h1>
@@ -80,7 +80,7 @@
                                         <tr class="border-bottom text-muted">
                                             <th>Product</th>
                                             <th>SKU</th>
-                                            <th>Size / Color</th>
+                                            <th>Size</th>
                                             <th>Qty</th>
                                             <th class="text-end">Price</th>
                                         </tr>
@@ -94,7 +94,7 @@
                                                 <td>{{ item.product.sku }}</td>
                                                 <td>
                                                     <span class="badge bg-light text-dark border">{{ item.variant.size }}</span>
-                                                    <span class="badge bg-light text-dark border">{{ item.variant.color }}</span>
+                                                    <!-- <span class="badge bg-light text-dark border">{{ item.variant.color }}</span> -->
                                                 </td>
                                                 <td>{{ item.quantity }}</td>
                                                 <td class="text-end fw-medium text-dark">₹{{ item.price|floatformat:2 }}</td>

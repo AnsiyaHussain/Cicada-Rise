@@ -4,11 +4,43 @@
 {% block title %}{{ product.name }} - Cicada Rise{% endblock %}
 
 {% block content %}
+<style>
+    .main-image-aspect img {
+        transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .main-image-aspect:hover img {
+        transform: scale(1.08);
+    }
+    .thumbnail-indicator-btn {
+        opacity: 0.6;
+        border: 2px solid transparent !important;
+        cursor: pointer;
+    }
+    .thumbnail-indicator-btn.active {
+        opacity: 1;
+        border-color: var(--primary) !important;
+        box-shadow: 0 4px 12px rgba(62, 2, 2, 0.15);
+    }
+    .thumbnail-indicator-btn:hover {
+        opacity: 0.9;
+        border-color: var(--gold) !important;
+    }
+    .product-thumbnails-row::-webkit-scrollbar {
+        height: 4px;
+    }
+    .product-thumbnails-row::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .product-thumbnails-row::-webkit-scrollbar-thumb {
+        background: var(--gold);
+        border-radius: 2px;
+    }
+</style>
 <div class="container py-5" 
      x-data="{
         variants: [
             {% for v in variants %}
-            { id: {{ v.id }}, size: '{{ v.size }}', color: '{{ v.color }}', stock: {{ v.stock }}, price: {{ v.price }} }{% if not forloop.last %},{% endif %}
+            { id: {{ v.id }}, size: '{{ v.size }}', color: '{{ v.color }}', stock: {{ v.stock }}, price: {{ v.price }}, sku: '{{ v.variant_sku }}' }{% if not forloop.last %},{% endif %}
             {% endfor %}
         ],
         activeSize: '{{ variants.0.size }}',
@@ -25,6 +57,11 @@
         get availableSizes() {
             let sizes = this.variants.map(v => v.size);
             return [...new Set(sizes)];
+        },
+        isSizeOutOfStock(sz) {
+            let v = this.variants.find(item => item.size === sz && item.color === this.activeColor);
+            if (!v) v = this.variants.find(item => item.size === sz);
+            return v ? v.stock <= 0 : false;
         }
      }">
      
@@ -43,30 +80,55 @@
     <div class="row g-5">
         <!-- Product Image Showcase -->
         <div class="col-md-6">
-            <div class="product-detail-carousel">
-                <div id="productCarousel" class="carousel slide" data-bs-ride="false">
-                    <div class="carousel-inner">
+            <div class="product-detail-image-section">
+                <!-- Main Image Wrapper -->
+                <div class="main-image-container mb-3 shadow-sm rounded overflow-hidden position-relative bg-white" style="border: 1px solid rgba(22,22,22,0.08);">
+                    <div id="productCarousel" class="carousel slide" data-bs-ride="false">
+                        <div class="carousel-inner">
+                            {% for img in product.images.all %}
+                                <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                    <div class="main-image-aspect position-relative" style="padding-top: 110%; overflow: hidden;">
+                                        <img src="{{ img.image.url }}" class="position-absolute top-0 start-0 w-100 h-100 img-fluid" alt="{{ product.name }}" style="object-fit: cover; transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);">
+                                    </div>
+                                </div>
+                            {% empty %}
+                                <div class="carousel-item active">
+                                    <div class="main-image-aspect position-relative" style="padding-top: 110%; overflow: hidden;">
+                                        <img src="{% static 'store/images/veranda.jpg' %}" class="position-absolute top-0 start-0 w-100 h-100 img-fluid" alt="{{ product.name }}" style="object-fit: cover;">
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if product.images.count > 1 %}
+                            <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel" data-bs-slide="prev" style="width: 45px;">
+                                <div class="carousel-arrow-btn d-flex align-items-center justify-content-center rounded-circle" style="background: rgba(255,255,255,0.85); width: 35px; height: 35px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid rgba(0,0,0,0.05);">
+                                    <i class="fa-solid fa-chevron-left text-dark" style="font-size: 0.8rem;"></i>
+                                </div>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#productCarousel" data-bs-slide="next" style="width: 45px;">
+                                <div class="carousel-arrow-btn d-flex align-items-center justify-content-center rounded-circle" style="background: rgba(255,255,255,0.85); width: 35px; height: 35px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid rgba(0,0,0,0.05);">
+                                    <i class="fa-solid fa-chevron-right text-dark" style="font-size: 0.8rem;"></i>
+                                </div>
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Thumbnail Indicators -->
+                {% if product.images.count > 1 %}
+                    <div class="product-thumbnails-row d-flex gap-2 justify-content-start overflow-x-auto pb-2 mb-4" style="scrollbar-width: thin; -webkit-overflow-scrolling: touch;">
                         {% for img in product.images.all %}
-                            <div class="carousel-item {% if img.is_primary %}active{% endif %}">
-                                <img src="{{ img.image.url }}" class="d-block w-100 img-fluid" alt="{{ product.name }}" style="object-fit: cover; max-height: 600px;">
-                            </div>
-                        {% empty %}
-                            <div class="carousel-item active">
-                                <img src="{% static 'store/images/veranda.jpg' %}" class="d-block w-100 img-fluid"alt="{{ product.name }}">
-                            </div>
+                            <button type="button" 
+                                    class="thumbnail-indicator-btn border rounded overflow-hidden bg-white p-0 {% if forloop.first %}active{% endif %}" 
+                                    style="width: 65px; height: 80px; flex-shrink: 0; transition: all 0.3s ease; border-color: rgba(22,22,22,0.12);"
+                                    data-bs-target="#productCarousel" 
+                                    data-bs-slide-to="{{ forloop.counter0 }}">
+                                <img src="{{ img.image.url }}" class="w-100 h-100" style="object-fit: cover;">
+                            </button>
                         {% endfor %}
                     </div>
-                    {% if product.images.count > 1 %}
-                        <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel" data-bs-slide="prev" id="product-carousel-prev">
-                            <span class="carousel-control-prev-icon" aria-hidden="true" style="filter: invert(1);"></span>
-                            <span class="visually-hidden">Previous</span>
-                        </button>
-                        <button class="carousel-control-next" type="button" data-bs-target="#productCarousel" data-bs-slide="next" id="product-carousel-next">
-                            <span class="carousel-control-next-icon" aria-hidden="true" style="filter: invert(1);"></span>
-                            <span class="visually-hidden">Next</span>
-                        </button>
-                    {% endif %}
-                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -91,10 +153,9 @@
             </div>
 
             <!-- Price -->
-       <div class="fs-2 fw-semibold mb-4"
-     style="font-family: 'Inter', sans-serif; color: #3E0202;">
-    ₹<span x-text="activeVariant ? activeVariant.price.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '{{ product.price }}'">{{ product.price }}</span>
-</div>
+            <div class="fs-2 fw-semibold mb-4" style="font-family: 'Inter', sans-serif; color: #3E0202;">
+                ₹<span x-text="activeVariant ? Number(activeVariant.price).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : parseFloat('{{ product.price|default:0 }}').toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})">{% if product.price %}{{ product.price|floatformat:2 }}{% endif %}</span>
+            </div>
 
             <p class="text-muted mb-4" style="font-size:0.9rem; line-height: 1.7;">{{ product.description }}</p>
             
@@ -106,16 +167,20 @@
                 <div class="d-flex flex-wrap gap-2">
                     <template x-for="sz in availableSizes">
                         <button type="button" 
-                                :class="{'variant-btn': true, 'active': activeSize === sz}" 
+                                :class="{'variant-btn': true, 'active': activeSize === sz, 'border-danger text-muted': isSizeOutOfStock(sz)}" 
                                 @click="activeSize = sz; if(!availableColors.includes(activeColor)) activeColor = availableColors[0]"
-                                x-text="sz"
-                                :id="'size-btn-' + sz"></button>
+                                :id="'size-btn-' + sz">
+                            <span x-text="sz"></span>
+                            <template x-if="isSizeOutOfStock(sz)">
+                                <span class="badge bg-danger ms-1" style="font-size:0.6rem;">Sold Out</span>
+                            </template>
+                        </button>
                     </template>
                 </div>
             </div>
 
             <!-- Color Selection -->
-            <div class="mb-4">
+            <!-- <div class="mb-4">
                 <span class="font-body fw-bold text-uppercase d-block mb-2" style="font-size:0.75rem; letter-spacing:0.05em;">Select Color:</span>
                 <div class="d-flex flex-wrap gap-2">
                     <template x-for="cl in availableColors">
@@ -126,7 +191,7 @@
                                 :id="'color-btn-' + cl"></button>
                     </template>
                 </div>
-            </div>
+            </div> -->
 
             <!-- Inventory Display / Alerts -->
             <div class="mb-4">
@@ -207,7 +272,7 @@
 
             <div class="mt-3 p-3 bg-white" style="border-left: 2px solid var(--gold);">
                 <span class="d-block font-body fw-bold text-uppercase text-secondary mb-1" style="font-size:0.75rem; letter-spacing:0.05em;">Product Details:</span>
-                <span class="text-muted" style="font-size:0.8rem;">Code: <strong class="text-dark">{{ product.sku }}</strong> | Category: {{ product.category.name }}</span>
+                <span class="text-muted" style="font-size:0.8rem;">SKU Code: <strong class="text-dark" x-text="activeVariant ? activeVariant.sku : '{{ product.sku }}'">{{ product.sku }}</strong> | Category: {{ product.category.name }}</span>
                 {% if product.fabric_details %}
                     <span class="d-block text-muted mt-2" style="font-size:0.8rem;"><strong>Fabric:</strong> {{ product.fabric_details }}</span>
                 {% endif %}
@@ -278,4 +343,27 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const carouselEl = document.getElementById('productCarousel');
+        if (carouselEl) {
+            carouselEl.addEventListener('slid.bs.carousel', function(event) {
+                const index = event.to;
+                const buttons = document.querySelectorAll('.thumbnail-indicator-btn');
+                buttons.forEach((btn, idx) => {
+                    if (idx === index) {
+                        btn.classList.add('active');
+                        // Scroll active thumbnail into center view inside the flex row
+                        btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            });
+        }
+    });
+</script>
 {% endblock %}

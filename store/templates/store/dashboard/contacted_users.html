@@ -88,7 +88,7 @@
                     <tr id="contact-row-{{ contact.id }}">
                         <td>
                             <div>
-                                <span class="d-block fw-bold text-white">{{ contact.name }}</span>
+                                <span class="d-block fw-bold text-main">{{ contact.name }}</span>
                                 <span class="text-muted d-block" style="font-size:0.75rem;">{{ contact.email }}</span>
                             </div>
                         </td>
@@ -96,7 +96,7 @@
                             <span class="text-secondary">{{ contact.phone|default:"N/A" }}</span>
                         </td>
                         <td>
-                            <span class="text-white" style="font-size:0.85rem;">{{ contact.subject|truncatewords:5 }}</span>
+                            <span class="text-main" style="font-size:0.85rem;">{{ contact.subject|truncatewords:5 }}</span>
                         </td>
                         <td>
                             <span class="text-muted" style="font-size:0.8rem; max-width:200px; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
@@ -112,7 +112,7 @@
                         <td>
                             <form method="POST" action="{% url 'dashboard_update_contact_status' contact.id %}" style="display:inline;">
                                 {% csrf_token %}
-                                <select name="status" class="form-select form-select-sm d-inline-block" style="width: 120px; font-size:0.75rem;" onchange="this.form.submit()">
+                                <select name="status" class="form-select form-select-sm d-inline-block border-primary" style="width: 120px; font-size:0.75rem;" onchange="this.form.submit()">
                                     {% for val, name in contact_status_choices %}
                                         <option value="{{ val }}" {% if contact.status == val %}selected{% endif %}>{{ name }}</option>
                                     {% endfor %}
@@ -125,64 +125,6 @@
                             </a>
                         </td>
                     </tr>
-
-                    <!-- Contact Detail Modal -->
-                    <div class="modal fade" id="contactModal{{ contact.id }}" tabindex="-1">
-                        <div class="modal-dialog modal-lg">
-                            <div class="modal-content" style="background: rgba(30, 30, 40, 0.95); border: 1px solid var(--border-color);">
-                                <div class="modal-header border-bottom" style="border-color: var(--border-color);">
-                                    <h5 class="modal-title">Message from {{ contact.name }}</h5>
-                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <div class="mb-4">
-                                        <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">From</label>
-                                        <p class="text-white mb-0">{{ contact.name }} ({{ contact.email }})</p>
-                                    </div>
-
-                                    {% if contact.phone %}
-                                        <div class="mb-4">
-                                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Phone</label>
-                                            <p class="text-white mb-0">
-                                                <a href="tel:{{ contact.phone }}" class="text-decoration-none">{{ contact.phone }}</a>
-                                            </p>
-                                        </div>
-                                    {% endif %}
-
-                                    <div class="mb-4">
-                                        <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Subject</label>
-                                        <p class="text-white mb-0">{{ contact.subject }}</p>
-                                    </div>
-
-                                    <div class="mb-4">
-                                        <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Message</label>
-                                        <div class="p-3 rounded" style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color);">
-                                            <p class="text-white mb-0" style="white-space: pre-wrap;">{{ contact.message }}</p>
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Received</label>
-                                            <p class="text-white mb-0">{{ contact.created_at|date:"d M Y, h:i A" }}</p>
-                                        </div>
-                                        <div class="col-6">
-                                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Current Status</label>
-                                            <span class="badge bg-{% if contact.status == 'New' %}warning{% elif contact.status == 'Contacted' %}info{% elif contact.status == 'Resolved' %}success{% else %}danger{% endif %}">
-                                                {{ contact.status }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal-footer border-top" style="border-color: var(--border-color);">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                    <a href="mailto:{{ contact.email }}" class="btn btn-primary">
-                                        <i class="fa-solid fa-reply me-1"></i> Reply via Email
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 {% empty %}
                     <tr>
                         <td colspan="7" class="text-center text-muted py-4">
@@ -198,4 +140,64 @@
         </table>
     </div>
 </div>
+
+<!-- Modal Definitions Outside Table Body for Clean Validation and Rendering -->
+{% for contact in contacts %}
+    <div class="modal fade" id="contactModal{{ contact.id }}" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content" style="background: var(--bg-panel); border: 1px solid var(--border-color);">
+                <div class="modal-header border-bottom" style="border-color: var(--border-color);">
+                    <h5 class="modal-title font-display text-main">Message from {{ contact.name }}</h5>
+                    <button type="button" class="btn-close" :class="darkMode ? 'btn-close-white' : ''" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-4">
+                        <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">From</label>
+                        <p class="text-main mb-0">{{ contact.name }} ({{ contact.email }})</p>
+                    </div>
+
+                    {% if contact.phone %}
+                        <div class="mb-4">
+                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Phone</label>
+                            <p class="text-main mb-0">
+                                <a href="tel:{{ contact.phone }}" class="text-decoration-none text-primary">{{ contact.phone }}</a>
+                            </p>
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-4">
+                        <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Subject</label>
+                        <p class="text-main mb-0">{{ contact.subject }}</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Message</label>
+                        <div class="p-3 rounded" style="background: var(--bg-input); border: 1px solid var(--border-color);">
+                            <p class="text-main mb-0" style="white-space: pre-wrap;">{{ contact.message }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6">
+                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Received</label>
+                            <p class="text-main mb-0">{{ contact.created_at|date:"d M Y, h:i A" }}</p>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Current Status</label>
+                            <span class="badge bg-{% if contact.status == 'New' %}warning{% elif contact.status == 'Contacted' %}info{% elif contact.status == 'Resolved' %}success{% else %}danger{% endif %} d-inline-block">
+                                {{ contact.status }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top" style="border-color: var(--border-color);">
+                    <button type="button" class="btn btn-premium-outline py-2" data-bs-dismiss="modal">Close</button>
+                    <a href="mailto:{{ contact.email }}" class="btn btn-premium py-2">
+                        <i class="fa-solid fa-reply me-1"></i> Reply via Email
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endfor %}
 {% endblock %}

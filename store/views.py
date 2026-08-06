@@ -1,4 +1,5 @@
 import urllib.parse
+import io
 from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
@@ -9,6 +10,11 @@ from django.db.models import Q, Sum, Avg, Count
 from django.conf import settings
 from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
+
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 from .models import (
     Category, Product, ProductVariant, ProductImage,
@@ -39,9 +45,9 @@ def format_whatsapp_number(phone):
 # ----------------- SHOPPING VIEWS -----------------
 
 def home(request):
-    featured_products = Product.objects.filter(is_featured=True)[:4]
-    seasonal_products = Product.objects.filter(is_seasonal=True)[:4]
-    cicada_products = Product.objects.filter(is_cicada_wear=True)[:4]
+    featured_products = Product.objects.filter(is_featured=True).prefetch_related('images')[:4]
+    seasonal_products = Product.objects.filter(is_seasonal=True).prefetch_related('images')[:4]
+    cicada_products = Product.objects.filter(is_cicada_wear=True).prefetch_related('images')[:4]
     categories = Category.objects.filter(is_active=True)
     
     brand_settings = HomepageSettings.objects.first()
@@ -61,7 +67,7 @@ def shop(request):
     category_slug = request.GET.get('category', '')
     sort_by = request.GET.get('sort', '')
 
-    products = Product.objects.all()
+    products = Product.objects.all().prefetch_related('images')
 
     if query:
         products = products.filter(
@@ -126,11 +132,11 @@ def product_detail(request, slug):
     })
 
 def seasonal_wears(request):
-    products = Product.objects.filter(is_seasonal=True)
+    products = Product.objects.filter(is_seasonal=True).prefetch_related('images')
     return render(request, 'store/seasonal_wears.html', {'products': products})
 
 def cicada_wears(request):
-    products = Product.objects.filter(is_cicada_wear=True)
+    products = Product.objects.filter(is_cicada_wear=True).prefetch_related('images')
     return render(request, 'store/cicada_wears.html', {'products': products})
 
 def about(request):
@@ -165,7 +171,7 @@ def contact(request):
 
 @login_required
 def wishlist_view(request):
-    wishlist_items = Wishlist.objects.filter(user=request.user).select_related('product')
+    wishlist_items = Wishlist.objects.filter(user=request.user).select_related('product').prefetch_related('product__images')
     return render(request, 'store/wishlist.html', {'wishlist_items': wishlist_items})
 
 @login_required
@@ -359,21 +365,27 @@ def buy_now(request, product_id):
         "• *Product Name*: {prod_name}\n"
         "• *Product Code (SKU)*: {prod_sku}\n"
         "• *Size*: {size}\n"
-        "• *Color*: {color}\n"
+        # "• *Color*: {color}\n"
         "• *Quantity*: {qty}\n"
         "• *Total Value*: ₹{price:,.2f}\n\n"
         "👤 *CUSTOMER DETAILS*\n"
         "• *Name*: {cust_name}\n"
         "• *Phone*: {cust_phone}\n"
-        "• *Shipping*: {cust_addr}\n\n"
+        "• *Shipping Address*: {cust_addr}\n\n"
+        "📲 *UPI QR CODE TO PAY* 📲\n"
+        "Scan/Tap to pay: {qr_code_url}\n"
+        "UPI ID: 9447771056@ptyes\n\n"
         "🏦 *DIRECT BANK TRANSFER DETAILS* 🏦\n"
         "• *Bank*: SBI\n"
         "• *Account Holder*: {bank_holder}\n"
         "• *Account Number*: {bank_acc}\n"
         "• *IFSC Code*: {bank_ifsc}\n"
         "• *Branch*: {bank_branch}\n\n"
-        "*Please complete the bank transfer of ₹{price:,.2f} and share the transaction snapshot here to confirm your order.*"
+        "*Please complete the payment of ₹{price:,.2f} using either the UPI QR code or bank transfer, and share the transaction screenshot here to confirm your order.*"
     )
+    
+    qr_code_url = request.build_absolute_uri('/static/store/images/upi_qr_code.jpg')
+    cust_full_address = f"{profile.address}, {profile.city}, {profile.state} - {profile.pin_code}"
     
     msg = msg_template.format(
         prod_name=product.name,
@@ -384,7 +396,8 @@ def buy_now(request, product_id):
         price=variant.price * quantity,
         cust_name=customer_name,
         cust_phone=profile.phone,
-        cust_addr=f"{profile.city}, {profile.state}",
+        cust_addr=cust_full_address,
+        qr_code_url=qr_code_url,
         bank_holder=brand_settings.bank_holder,
         bank_acc=brand_settings.bank_account,
         bank_ifsc=brand_settings.bank_ifsc,
@@ -461,22 +474,29 @@ def checkout_cart(request):
         "👤 *CUSTOMER DETAILS*\n"
         "• *Name*: {cust_name}\n"
         "• *Phone*: {cust_phone}\n"
-        "• *Shipping*: {cust_addr}\n\n"
+        "• *Shipping Address*: {cust_addr}\n\n"
+        "📲 *UPI QR CODE TO PAY* 📲\n"
+        "Scan/Tap to pay: {qr_code_url}\n"
+        "UPI ID: 9447771056@ptyes\n\n"
         "🏦 *DIRECT BANK TRANSFER DETAILS* 🏦\n"
         "• *Bank*: SBI\n"
         "• *Account Holder*: {bank_holder}\n"
         "• *Account Number*: {bank_acc}\n"
         "• *IFSC Code*: {bank_ifsc}\n"
         "• *Branch*: {bank_branch}\n\n"
-        "*Please complete the bank transfer of ₹{total:,.2f} and share the transaction snapshot here to confirm your order.*"
+        "*Please complete the payment of ₹{total:,.2f} using either the UPI QR code or bank transfer, and share the transaction screenshot here to confirm your order.*"
     )
+    
+    qr_code_url = request.build_absolute_uri('/static/store/images/upi_qr_code.jpg')
+    cust_full_address = f"{profile.address}, {profile.city}, {profile.state} - {profile.pin_code}"
     
     msg = msg_template.format(
         summary=summary_text,
         total=cart.total_price,
         cust_name=customer_name,
         cust_phone=profile.phone,
-        cust_addr=f"{profile.city}, {profile.state}",
+        cust_addr=cust_full_address,
+        qr_code_url=qr_code_url,
         bank_holder=brand_settings.bank_holder,
         bank_acc=brand_settings.bank_account,
         bank_ifsc=brand_settings.bank_ifsc,
@@ -534,10 +554,9 @@ def register_view(request):
             user.set_password(form.cleaned_data['password'])
             user.save()
             
-            login(request, user)
             Cart.objects.create(user=user)
-            messages.success(request, "Registration successful! Welcome to Cicada Rise.")
-            return redirect('home')
+            messages.success(request, "Registration successful! Please log in with your credentials.")
+            return redirect('login')
             
     return render(request, 'store/register.html', {'form': form})
 
@@ -549,18 +568,21 @@ def logout_view(request):
 
 @login_required
 def profile_view(request):
+    profile, _ = CustomerProfile.objects.get_or_create(user=request.user)
     user_form = UserProfileForm(instance=request.user)
-    profile_form = CustomerProfileForm(instance=request.user.profile)
+    profile_form = CustomerProfileForm(instance=profile)
     orders = Order.objects.filter(user=request.user).order_by('-order_date')
     
     if request.method == 'POST':
         user_form = UserProfileForm(request.POST, instance=request.user)
-        profile_form = CustomerProfileForm(request.POST, instance=request.user.profile)
+        profile_form = CustomerProfileForm(request.POST, instance=profile)
         if user_form.is_valid() and profile_form.is_valid():
             user_form.save()
             profile_form.save()
-            messages.success(request, "Your profile has been updated.")
+            messages.success(request, "Your account and shipping details have been saved successfully.")
             return redirect('profile')
+        else:
+            messages.error(request, "Please check and correct the errors in your details form.")
             
     return render(request, 'store/profile.html', {
         'user_form': user_form,
@@ -724,7 +746,7 @@ def dashboard_orders(request):
     status_filter = request.GET.get('status', '')
     sort_by = request.GET.get('sort', '-order_date')
     
-    orders = Order.objects.all()
+    orders = Order.objects.all().prefetch_related('items__product__images', 'items__variant')
     
     if query:
         orders = orders.filter(
@@ -753,7 +775,7 @@ def dashboard_whatsapp_orders(request):
     query = request.GET.get('q', '')
     sort_by = request.GET.get('sort', '-order_date')
     
-    orders = Order.objects.filter(status__in=['New', 'Pending'])
+    orders = Order.objects.filter(status__in=['New', 'Pending']).prefetch_related('items__product__images', 'items__variant')
     
     if query:
         orders = orders.filter(
@@ -837,14 +859,305 @@ def dashboard_update_order_status(request, order_id):
     return redirect('dashboard_order_detail', order_id=order.id)
 
 @staff_required
+def export_orders_pdf(request):
+    query = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+    sort_by = request.GET.get('sort', '-order_date')
+
+    orders = Order.objects.all()
+    if query:
+        orders = orders.filter(
+            Q(customer_name__icontains=query) |
+            Q(customer_phone__icontains=query) |
+            Q(id__icontains=query.replace('#CR-', ''))
+        )
+    if status_filter:
+        orders = orders.filter(status=status_filter)
+    orders = orders.order_by(sort_by)
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36
+    )
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle(
+        'TitleStyle',
+        parent=styles['Heading1'],
+        fontName='Helvetica-Bold',
+        fontSize=18,
+        textColor=colors.HexColor('#5B1A14'),
+        spaceAfter=6
+    )
+    subtitle_style = ParagraphStyle(
+        'SubtitleStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        textColor=colors.HexColor('#666666'),
+        spaceAfter=12
+    )
+    table_header_style = ParagraphStyle(
+        'TableHeader',
+        fontName='Helvetica-Bold',
+        fontSize=9,
+        textColor=colors.white
+    )
+    table_cell_style = ParagraphStyle(
+        'TableCell',
+        fontName='Helvetica',
+        fontSize=8,
+        textColor=colors.HexColor('#161616')
+    )
+
+    elements = []
+    elements.append(Paragraph("CICADA RISE - ORDERS SUMMARY REPORT", title_style))
+    filter_text = f"Search Keyword: '{query or 'All'}' | Status Filter: '{status_filter or 'All'}' | Total Orders: {orders.count()}"
+    elements.append(Paragraph(filter_text, subtitle_style))
+    elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#C8A16A'), spaceAfter=12))
+
+    data = [
+        [
+            Paragraph("Order ID", table_header_style),
+            Paragraph("Date", table_header_style),
+            Paragraph("Customer Name", table_header_style),
+            Paragraph("Phone Number", table_header_style),
+            Paragraph("Status", table_header_style),
+            Paragraph("Total Price", table_header_style)
+        ]
+    ]
+
+    total_sum = 0.0
+    for order in orders:
+        total_sum += float(order.total_amount)
+        data.append([
+            Paragraph(f"#CR-{order.id}", table_cell_style),
+            Paragraph(order.order_date.strftime("%d %b %Y %H:%M"), table_cell_style),
+            Paragraph(order.customer_name, table_cell_style),
+            Paragraph(order.customer_phone, table_cell_style),
+            Paragraph(order.status, table_cell_style),
+            Paragraph(f"Rs. {order.total_amount:,.2f}", table_cell_style)
+        ])
+
+    data.append([
+        Paragraph("<b>GRAND TOTAL</b>", table_cell_style),
+        Paragraph("", table_cell_style),
+        Paragraph("", table_cell_style),
+        Paragraph("", table_cell_style),
+        Paragraph(f"<b>{orders.count()} Orders</b>", table_cell_style),
+        Paragraph(f"<b>Rs. {total_sum:,.2f}</b>", table_cell_style)
+    ])
+
+    t = Table(data, colWidths=[65, 95, 140, 90, 75, 75])
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#5B1A14')),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -2), 0.5, colors.HexColor('#D6B48C')),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#F8F3ED')),
+        ('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor('#C8A16A')),
+    ]))
+
+    elements.append(t)
+    doc.build(elements)
+
+    buffer.seek(0)
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="Cicada_Rise_Orders_Report.pdf"'
+    return response
+
+@staff_required
+def export_order_detail_pdf(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    order_items = order.items.all().select_related('product', 'variant')
+    brand_settings = HomepageSettings.objects.first()
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36
+    )
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle(
+        'InvoiceTitle',
+        parent=styles['Heading1'],
+        fontName='Helvetica-Bold',
+        fontSize=20,
+        textColor=colors.HexColor('#5B1A14'),
+        spaceAfter=4
+    )
+    subtitle_style = ParagraphStyle(
+        'InvoiceSubtitle',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        textColor=colors.HexColor('#C8A16A'),
+        spaceAfter=15
+    )
+    section_heading = ParagraphStyle(
+        'SectionHeading',
+        fontName='Helvetica-Bold',
+        fontSize=10,
+        textColor=colors.HexColor('#5B1A14'),
+        spaceAfter=4
+    )
+    normal_text = ParagraphStyle(
+        'NormalText',
+        fontName='Helvetica',
+        fontSize=8.5,
+        textColor=colors.HexColor('#333333'),
+        leading=12
+    )
+    table_header_style = ParagraphStyle(
+        'TableHeader',
+        fontName='Helvetica-Bold',
+        fontSize=8.5,
+        textColor=colors.white
+    )
+    table_cell_style = ParagraphStyle(
+        'TableCell',
+        fontName='Helvetica',
+        fontSize=8,
+        textColor=colors.HexColor('#161616')
+    )
+
+    elements = []
+    elements.append(Paragraph("CICADA RISE - OFFICIAL INVOICE", title_style))
+    elements.append(Paragraph("Wear The Story Of You | Luxury Slow Fashion ERP", subtitle_style))
+    elements.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#C8A16A'), spaceAfter=12))
+
+    order_info = f"""
+    <b>Order Ref:</b> #CR-{order.id}<br/>
+    <b>Date Placed:</b> {order.order_date.strftime("%d %B %Y, %I:%M %p")}<br/>
+    <b>Current Status:</b> {order.status}<br/>
+    <b>WhatsApp Sent:</b> {'Yes' if order.wa_message_sent else 'No'}
+    """
+    customer_info = f"""
+    <b>Customer Name:</b> {order.customer_name}<br/>
+    <b>Contact Phone:</b> {order.customer_phone}<br/>
+    <b>Shipping Address:</b> {order.shipping_address}
+    """
+
+    meta_table_data = [
+        [
+            Paragraph("<b>ORDER METADATA</b>", section_heading),
+            Paragraph("<b>CUSTOMER & DELIVERY DETAILS</b>", section_heading)
+        ],
+        [
+            Paragraph(order_info, normal_text),
+            Paragraph(customer_info, normal_text)
+        ]
+    ]
+    meta_table = Table(meta_table_data, colWidths=[270, 270])
+    meta_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('PADDING', (0, 0), (-1, -1), 2),
+    ]))
+    elements.append(meta_table)
+    elements.append(Spacer(1, 15))
+
+    items_data = [
+        [
+            Paragraph("Product Design", table_header_style),
+            Paragraph("SKU Code", table_header_style),
+            Paragraph("Size / Color", table_header_style),
+            Paragraph("Qty", table_header_style),
+            Paragraph("Unit Price", table_header_style),
+            Paragraph("Subtotal", table_header_style)
+        ]
+    ]
+
+    for item in order_items:
+        p_name = item.product.name if item.product else "Deleted Product"
+        sku = item.product.sku if item.product else "N/A"
+        variant_desc = f"{item.variant.size} / {item.variant.color}" if item.variant else "N/A"
+        items_data.append([
+            Paragraph(p_name, table_cell_style),
+            Paragraph(sku, table_cell_style),
+            Paragraph(variant_desc, table_cell_style),
+            Paragraph(str(item.quantity), table_cell_style),
+            Paragraph(f"Rs. {item.price:,.2f}", table_cell_style),
+            Paragraph(f"Rs. {item.subtotal:,.2f}", table_cell_style)
+        ])
+
+    items_data.append([
+        Paragraph("<b>GRAND TOTAL</b>", table_cell_style),
+        Paragraph("", table_cell_style),
+        Paragraph("", table_cell_style),
+        Paragraph("", table_cell_style),
+        Paragraph("", table_cell_style),
+        Paragraph(f"<b>Rs. {order.total_amount:,.2f}</b>", table_cell_style)
+    ])
+
+    items_table = Table(items_data, colWidths=[140, 80, 100, 40, 90, 90])
+    items_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#5B1A14')),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -2), 0.5, colors.HexColor('#D6B48C')),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#F8F3ED')),
+        ('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor('#C8A16A')),
+    ]))
+
+    elements.append(items_table)
+    elements.append(Spacer(1, 15))
+
+    if brand_settings:
+        bank_details = f"<b>Merchant Transfer Details:</b> Holder: {brand_settings.bank_holder} | Account: {brand_settings.bank_account} | IFSC: {brand_settings.bank_ifsc} | Branch: {brand_settings.bank_branch} | WhatsApp: +91 {brand_settings.whatsapp_number}"
+        elements.append(Paragraph(bank_details, normal_text))
+        elements.append(Spacer(1, 8))
+
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#D6B48C'), spaceAfter=8))
+    policy_note = "<i>Policy Note: Return or exchange requests must be filed within 24 hours of delivery receipt accompanied by an uninterrupted unboxing video recording.</i>"
+    elements.append(Paragraph(policy_note, normal_text))
+
+    doc.build(elements)
+
+    buffer.seek(0)
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="Cicada_Rise_Invoice_CR-{order.id}.pdf"'
+    return response
+
+@staff_required
+@require_POST
+def dashboard_order_delete(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    order_ref = f"#CR-{order.id}"
+    order.delete()
+    messages.success(request, f"Order {order_ref} has been permanently deleted.")
+    return redirect('dashboard_orders')
+
+@staff_required
+@require_POST
+def dashboard_clear_cancelled_orders(request):
+    deleted_count, _ = Order.objects.filter(status='Cancelled').delete()
+    messages.success(request, f"Successfully cleared {deleted_count} cancelled order(s) from system records.")
+    return redirect('dashboard_orders')
+
+@staff_required
 def dashboard_products(request):
     products = Product.objects.all().prefetch_related('variants', 'images')
     categories = Category.objects.all()
     
     if request.method == 'POST':
+        # Validate uploaded image sizes (must be under 2 MB)
+        uploaded_images = request.FILES.getlist('images')
+        for img in uploaded_images:
+            if img.size > 2 * 1024 * 1024:
+                messages.error(request, f"Upload Failed: Image '{img.name}' is more than 2 MB. Please compress your images under 2 MB before uploading.")
+                return redirect('dashboard_products')
+                
         product_id = request.POST.get('product_id')
         name = request.POST.get('name')
-        sku = request.POST.get('sku')
+        sku = request.POST.get('sku') or None
         cat_id = request.POST.get('category')
         price = request.POST.get('base_price')
         sale_price = request.POST.get('sale_price') or None
@@ -858,6 +1171,9 @@ def dashboard_products(request):
         is_cicada_wear = 'is_cicada_wear' in request.POST
         
         category = get_object_or_404(Category, id=cat_id)
+        
+        selected_sizes = request.POST.getlist('sizes')
+        all_possible_sizes = ['S', 'M', 'L', 'XL', 'XXL', '3XL']
         
         if product_id:
             product = get_object_or_404(Product, id=product_id)
@@ -874,26 +1190,75 @@ def dashboard_products(request):
             product.is_seasonal = is_seasonal
             product.is_cicada_wear = is_cicada_wear
             product.save()
-            messages.success(request, f"Product '{name}' updated successfully.")
+
+            for sz in all_possible_sizes:
+                if sz in selected_sizes:
+                    stock_val = request.POST.get(f'stock_{sz}', 0)
+                    try:
+                        st_num = int(stock_val) if stock_val is not None and stock_val != '' else 0
+                    except ValueError:
+                        st_num = 0
+                    var, created = ProductVariant.objects.get_or_create(
+                        product=product, size=sz, color="Original Gold",
+                        defaults={'sku': f"{product.sku}-{sz}", 'stock': st_num}
+                    )
+                    var.stock = st_num
+                    var.sku = f"{product.sku}-{sz}"
+                    var.save()
+                else:
+                    ProductVariant.objects.filter(product=product, size=sz).delete()
+
+            messages.success(request, f"Product '{name}' and size specifications updated successfully.")
         else:
-            initial_stock = int(request.POST.get('initial_stock', 5) or 0)
             product = Product.objects.create(
                 name=name, sku=sku, category=category,
                 base_price=price, sale_price=sale_price, collection=collection,
                 description=desc, fabric_details=fabric, care_instructions=care,
                 is_featured=is_featured, is_seasonal=is_seasonal, is_cicada_wear=is_cicada_wear
             )
-            for size in ['S', 'M', 'L', 'XL']:
-                ProductVariant.objects.create(
-                    product=product, size=size, color="Original Gold", stock=initial_stock
-                )
-            messages.success(request, f"New product '{name}' created successfully with initial stock of {initial_stock} per size.")
+            for sz in all_possible_sizes:
+                if sz in selected_sizes:
+                    stock_val = request.POST.get(f'stock_{sz}', 5)
+                    try:
+                        st_num = int(stock_val) if stock_val is not None and stock_val != '' else 5
+                    except ValueError:
+                        st_num = 5
+                    ProductVariant.objects.create(
+                        product=product, size=sz, color="Original Gold", stock=st_num, sku=f"{product.sku}-{sz}"
+                    )
+            messages.success(request, f"New product '{name}' created successfully with configured size variants.")
             
         images = request.FILES.getlist('images')
         for i, img in enumerate(images):
+            # Process and standardize image to 800x880 JPEG
+            try:
+                from PIL import Image, ImageOps
+                import io
+                from django.core.files.base import ContentFile
+                import os
+                
+                img_io = io.BytesIO()
+                with Image.open(img) as pil_img:
+                    # Handle transparency/alpha channels
+                    if pil_img.mode in ('RGBA', 'LA') or (pil_img.mode == 'P' and 'transparency' in pil_img.info):
+                        background = Image.new('RGB', pil_img.size, (255, 255, 255))
+                        background.paste(pil_img, mask=pil_img.convert('RGBA').split()[3])
+                        pil_img = background
+                    elif pil_img.mode != 'RGB':
+                        pil_img = pil_img.convert('RGB')
+                    
+                    resized_img = ImageOps.fit(pil_img, (800, 880), Image.Resampling.LANCZOS)
+                    resized_img.save(img_io, format='JPEG', quality=85)
+                
+                base_name, _ = os.path.splitext(img.name)
+                new_name = f"{base_name}.jpg"
+                processed_img = ContentFile(img_io.getvalue(), name=new_name)
+            except Exception:
+                processed_img = img
+                
             ProductImage.objects.create(
                 product=product,
-                image=img,
+                image=processed_img,
                 is_primary=(i == 0 and not product.images.filter(is_primary=True).exists())
             )
             
@@ -903,6 +1268,7 @@ def dashboard_products(request):
         'products': products,
         'categories': categories,
         'collections': Product.COLLECTION_CHOICES,
+        'size_choices': ['S', 'M', 'L', 'XL', 'XXL', '3XL'],
     })
 
 @staff_required
@@ -933,38 +1299,54 @@ def dashboard_inventory(request):
 @require_POST
 def dashboard_restock(request, variant_id):
     variant = get_object_or_404(ProductVariant, id=variant_id)
-    qty = int(request.POST.get('quantity', 0))
-    if qty > 0:
-        variant.stock += qty
+    action = request.POST.get('action', 'add')
+    
+    if action == 'stock_out':
+        variant.stock = 0
         variant.save()
-        
-        RestockHistory.objects.create(
-            variant=variant,
-            quantity_added=qty,
-            restocked_by=request.user
-        )
-        
+        msg_text = "Marked Out of Stock!"
+    elif action == 'set':
+        set_stock = int(request.POST.get('set_stock', 0))
+        variant.stock = max(0, set_stock)
+        variant.save()
+        msg_text = f"Set stock to {variant.stock}!"
+    else:
+        qty = int(request.POST.get('quantity', 0))
+        if qty > 0:
+            variant.stock += qty
+            variant.save()
+            RestockHistory.objects.create(
+                variant=variant,
+                quantity_added=qty,
+                restocked_by=request.user
+            )
+            msg_text = f"Added {qty} units!"
+        else:
+            msg_text = "No stock change"
+            
     if request.headers.get('HX-Request'):
         low_stock_badge = ""
-        if variant.stock <= 5:
-             low_stock_badge = '<span class="badge bg-danger ms-1">Low Stock</span>'
+        if variant.stock == 0:
+            low_stock_badge = '<span class="badge bg-danger ms-1">Sold Out</span>'
+        elif variant.stock <= 5:
+            low_stock_badge = '<span class="badge bg-warning text-dark ms-1">Low Stock</span>'
              
         html = f"""
         <div hx-swap-oob="true" id="variant-stock-display-{variant_id}">
              {variant.stock}{low_stock_badge}
         </div>
         <div class="alert alert-success py-1 px-2 mb-0 mt-1" style="font-size:0.8rem;" id="restock-toast-{variant_id}">
-             Added {qty} units!
+             {msg_text}
              <script>
                  setTimeout(() => {{
-                     document.getElementById('restock-toast-{variant_id}').remove();
+                     document.getElementById('restock-toast-{variant_id}')?.remove();
                  }}, 2000);
              </script>
         </div>
         """
         return HttpResponse(html)
         
-    messages.success(request, f"Restocked {qty} units successfully.")
+    messages.success(request, f"Updated stock for {variant.product.name} ({variant.size}).")
     return redirect('dashboard_inventory')
 
 @staff_required

@@ -21,8 +21,11 @@
         </p>
     </div>
     
-    <!-- Bulk Actions Panel (Shopify/Stripe style) -->
-    <div class="col-sm-6 text-sm-end">
+    <!-- Bulk & Export Actions Panel -->
+    <div class="col-sm-6 text-sm-end d-flex justify-content-sm-end align-items-center gap-2">
+        <a href="{% url 'dashboard_orders_pdf' %}?q={{ query }}&status={{ status_filter }}&sort={{ sort_by }}" class="btn btn-outline-danger py-2 px-3" style="font-size:0.8rem;" id="download-all-pdf-btn" target="_blank">
+            <i class="fa-solid fa-file-pdf me-1"></i> Download PDF Report
+        </a>
         <div class="btn-group shadow-sm">
             <button class="btn btn-premium dropdown-toggle py-2 px-3" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size:0.8rem;">
                 <i class="fa-solid fa-list-check me-1"></i> Bulk Actions
@@ -33,7 +36,13 @@
                 <li><button class="dropdown-item" type="button" onclick="submitBulkAction('Shipped')" id="bulk-ship">Mark Shipped</button></li>
                 <li><button class="dropdown-item" type="button" onclick="submitBulkAction('Delivered')" id="bulk-deliver">Mark Delivered</button></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><button class="dropdown-item text-danger" type="button" onclick="submitBulkAction('Cancelled')" id="bulk-cancel">Cancel Orders</button></li>
+                <li><button class="dropdown-item text-warning" type="button" onclick="submitBulkAction('Cancelled')" id="bulk-cancel">Mark Cancelled</button></li>
+                <li>
+                    <form method="POST" action="{% url 'dashboard_clear_cancelled_orders' %}" onsubmit="return confirm('Are you sure you want to permanently delete all cancelled orders?');">
+                        {% csrf_token %}
+                        <button class="dropdown-item text-danger" type="submit" id="clear-cancelled-btn">Clear All Cancelled Orders</button>
+                    </form>
+                </li>
             </ul>
         </div>
     </div>
@@ -98,6 +107,7 @@
                         <th>Total Value</th>
                         <th class="text-center">WhatsApp Chat</th>
                         <th class="text-end">Status</th>
+                        <th class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -161,10 +171,23 @@
                                     {{ order.status }}
                                 </span>
                             </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a href="{% url 'dashboard_order_detail_pdf' order.id %}" class="btn btn-sm btn-outline-danger py-1 px-2" style="font-size:0.75rem;" title="Download Invoice PDF" id="download-pdf-btn-{{ order.id }}" target="_blank">
+                                        <i class="fa-solid fa-file-pdf"></i>
+                                    </a>
+                                    <form method="POST" action="{% url 'dashboard_order_delete' order.id %}" onsubmit="return confirm('Are you sure you want to delete Order #CR-{{ order.id }}?');" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2" style="font-size:0.75rem;" title="Delete Order" id="delete-order-btn-{{ order.id }}">
+                                            <i class="fa-regular fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">No order records match your selected parameters.</td>
+                            <td colspan="9" class="text-center text-muted py-4">No order records match your selected parameters.</td>
                         </tr>
                     {% endfor %}
                 </tbody>

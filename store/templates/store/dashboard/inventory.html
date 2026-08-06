@@ -59,7 +59,7 @@
                         {% for var in variants %}
                             <tr id="inventory-row-{{ var.id }}">
                                 <td><strong>{{ var.product.name }}</strong></td>
-                                <td><code>{{ var.product.sku }}</code></td>
+                                <td><code>{{ var.variant_sku }}</code></td>
                                 <td class="text-center"><span class="badge bg-light text-dark border">{{ var.size }}</span></td>
                                 <td>{{ var.color }}</td>
                                 <td>
@@ -73,11 +73,17 @@
                                     </div>
                                 </td>
                                 <td class="text-end">
-                                    <!-- Dynamic restock via HTMX -->
-                                    <form hx-post="{% url 'dashboard_restock' var.id %}" hx-swap="none" class="d-flex align-items-center justify-content-end gap-1" id="restock-form-{{ var.id }}">
-                                        <input type="number" name="quantity" value="5" class="form-control form-control-sm text-center border-primary" style="width:60px;" min="1" required id="restock-qty-input-{{ var.id }}">
-                                        <button class="btn btn-sm btn-premium py-1 px-2" type="submit" style="font-size:0.75rem;" id="restock-submit-btn-{{ var.id }}">+ Add</button>
-                                    </form>
+                                    <div class="d-flex align-items-center justify-content-end gap-1">
+                                        <!-- Dynamic restock via HTMX -->
+                                        <form hx-post="{% url 'dashboard_restock' var.id %}" hx-swap="none" class="d-flex align-items-center gap-1" id="restock-form-{{ var.id }}">
+                                            <input type="number" name="quantity" value="5" class="form-control form-control-sm text-center border-primary" style="width:55px;" min="1" required id="restock-qty-input-{{ var.id }}">
+                                            <button class="btn btn-sm btn-premium py-1 px-2" type="submit" style="font-size:0.75rem;" id="restock-submit-btn-{{ var.id }}">+ Add</button>
+                                        </form>
+                                        <!-- Stock Out Button -->
+                                        <form hx-post="{% url 'dashboard_restock' var.id %}" hx-vals='{"action": "stock_out"}' hx-swap="none" class="d-inline" id="stock-out-form-{{ var.id }}">
+                                            <button class="btn btn-sm btn-outline-danger py-1 px-2" type="submit" style="font-size:0.75rem;" title="Set stock to 0 (Mark Out of Stock)" id="stock-out-btn-{{ var.id }}">Out</button>
+                                        </form>
+                                    </div>
                                     <div id="restock-toast-{{ var.id }}"></div>
                                 </td>
                             </tr>
