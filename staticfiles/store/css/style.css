@@ -358,7 +358,7 @@ a:hover, a:focus {
 .product-image-wrapper {
     position: relative;
     width: 100%;
-    padding-top: 135%; /* Tall portrait format matching luxury brands */
+    padding-top: 105%; /* Normal compact size height ratio */
     overflow: hidden;
     background-color: var(--cream);
 }
@@ -584,13 +584,38 @@ a:hover, a:focus {
     right: 20%;
 }
 
-/* Responsive Rules */
 @media (max-width: 991.98px) {
     .navbar-custom {
         padding-top: 0.5rem;
         padding-bottom: 0.5rem;
+        background-color: rgba(248, 243, 237, 0.95) !important;
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        box-shadow: 0 2px 15px rgba(22, 22, 22, 0.06);
+    }
+
+    .navbar-collapse {
+        background-color: #F8F3ED !important;
+        border: 1px solid rgba(62, 2, 2, 0.15);
+        border-radius: 8px;
+        padding: 1.2rem 1rem;
+        margin-top: 0.8rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        position: relative;
+        z-index: 1050;
     }
     
+    .navbar-collapse .nav-link-custom {
+        color: #3E0202 !important;
+        padding: 0.75rem 1rem !important;
+        font-weight: 500;
+        border-bottom: 1px solid rgba(62, 2, 2, 0.08);
+    }
+    
+    .navbar-collapse .nav-link-custom:last-child {
+        border-bottom: none;
+    }
+
     .hero-wrapper {
         height: 80vh;
     }

@@ -443,13 +443,13 @@ a:hover, a:focus {
 }
 
 .product-card-title a:hover {
-    color: var(--gold);
+    color: var(--primary);
 }
 
 .product-card-price {
     font-weight: 500;
     color: var(--dark);
-    font-size: 1.05rem;
+    font-size: 1.00rem;
 }
 
 /* Floating Cicada Animation */
@@ -588,6 +588,10 @@ a:hover, a:focus {
     .navbar-custom {
         padding-top: 0.5rem;
         padding-bottom: 0.5rem;
+        background-color: rgba(248, 243, 237, 0.95) !important;
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        box-shadow: 0 2px 15px rgba(22, 22, 22, 0.06);
     }
 
     .navbar-collapse {
