@@ -108,7 +108,7 @@
             <div class="row row-cols-2 row-cols-lg-3 g-3 g-md-4">
                 {% for prod in products %}
                     <div class="col">
-                        <div class="product-card" id="product-card-shop-{{ prod.id }}">
+                        <div class="product-card" style="cursor: pointer;" onclick="window.location.href='{% url 'product_detail' prod.slug %}'" id="product-card-shop-{{ prod.id }}">
                             <div class="product-image-wrapper">
                                 <img src="{{ prod.primary_image_url }}" alt="{{ prod.name }}" class="product-img">
                                 
@@ -120,6 +120,7 @@
                                 
                                 {% if user.is_authenticated %}
                                     <button class="product-wishlist-btn" 
+                                            onclick="event.stopPropagation();"
                                             hx-post="{% url 'toggle_wishlist' prod.id %}" 
                                             hx-swap="innerHTML"
                                             title="Save to Wishlist"
@@ -129,15 +130,15 @@
                                         <i class="far fa-heart"></i>
                                     </button>
                                 {% else %}
-                                    <a href="{% url 'login' %}?next={% url 'shop' %}" class="product-wishlist-btn" title="Save to Wishlist" id="wishlist-login-btn-shop-{{ prod.id }}"><i class="far fa-heart"></i></a>
+                                    <a href="{% url 'login' %}?next={% url 'shop' %}" class="product-wishlist-btn" onclick="event.stopPropagation();" title="Save to Wishlist" id="wishlist-login-btn-shop-{{ prod.id }}"><i class="far fa-heart"></i></a>
                                 {% endif %}
                             </div>
                             <div class="product-card-body">
                                 <span class="product-card-category">{{ prod.category.name }}</span>
-                                <h3 class="product-card-title"><a href="{% url 'product_detail' prod.slug %}">{{ prod.name }}</a></h3>
+                                <h3 class="product-card-title"><a href="{% url 'product_detail' prod.slug %}" onclick="event.stopPropagation();">{{ prod.name }}</a></h3>
                                 <div class="product-card-price mb-1">₹{{ prod.base_price|floatformat:2 }}</div>
                                 <div class="mt-auto">
-                                    <a href="{% url 'product_detail' prod.slug %}" class="btn btn-premium-outline btn-sm w-100 py-2" style="font-size:0.75rem;" id="product-details-link-shop-{{ prod.id }}">View Details</a>
+                                    <a href="{% url 'product_detail' prod.slug %}" onclick="event.stopPropagation();" class="btn btn-premium-outline btn-sm w-100 py-2" style="font-size:0.75rem;" id="product-details-link-shop-{{ prod.id }}">View Details</a>
                                 </div>
                             </div>
                         </div>

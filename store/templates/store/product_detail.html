@@ -35,6 +35,28 @@
         background: var(--gold);
         border-radius: 2px;
     }
+    .variant-btn {
+        border: 1px solid var(--light-gray);
+        background: transparent;
+        min-width: 55px;
+        height: 45px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: var(--transition-smooth);
+        border-radius: 0;
+        cursor: pointer;
+        padding: 0 10px;
+        text-align: center;
+        margin: 0;
+    }
+    .variant-btn.active {
+        border-color: var(--primary) !important;
+        background-color: var(--primary) !important;
+        color: var(--cream) !important;
+    }
 </style>
 <div class="container py-5" 
      x-data="{
@@ -227,7 +249,7 @@
             {% if user.is_authenticated %}
                 <div class="row g-2" x-show="activeVariant && activeVariant.stock > 0">
                     <div class="col-6">
-                        <form hx-post="{% url 'add_to_cart' product.id %}" hx-swap="none" id="add-to-cart-form">
+                        <form hx-post="{% url 'add_to_cart' product.id %}" hx-swap="none" id="add-to-cart-form" onsubmit="return checkVariantSelected(this);">
                             <input type="hidden" name="variant" :value="activeVariant ? activeVariant.id : ''">
                             <input type="hidden" name="quantity" :value="quantity">
                             <button type="submit" class="btn btn-premium-outline w-100 py-3" style="font-size: 0.8rem;" id="add-to-cart-submit">
@@ -237,7 +259,7 @@
                     </div>
                     
                     <div class="col-6">
-                        <form method="POST" action="{% url 'buy_now' product.id %}" id="buy-now-form">
+                        <form method="POST" action="{% url 'buy_now' product.id %}" id="buy-now-form" onsubmit="return checkVariantSelected(this);">
                             {% csrf_token %}
                             <input type="hidden" name="variant" :value="activeVariant ? activeVariant.id : ''">
                             <input type="hidden" name="quantity" :value="quantity">
@@ -252,7 +274,26 @@
                     <button class="btn btn-secondary w-100 py-3 rounded-0" disabled id="disabled-out-of-stock-btn">Out of Stock</button>
                 </div>
             {% else %}
-                <div class="alert alert-secondary py-3 px-4 border-0 rounded-0 shadow-sm" style="font-size:0.85rem;" id="auth-required-banner">
+                <div class="row g-2" x-show="activeVariant && activeVariant.stock > 0">
+                    <div class="col-6">
+                        <button type="button" class="btn btn-premium-outline w-100 py-3" style="font-size: 0.8rem;" @click="handleLoggedOutAction('add_to_cart', activeSize, activeVariant ? activeVariant.id : null, activeVariant ? activeVariant.stock : 0, quantity)">
+                            <i class="fa-solid fa-bag-shopping me-2"></i> Add to Bag
+                        </button>
+                    </div>
+                    
+                    <div class="col-6">
+                        <button type="button" class="btn btn-premium w-100 py-3" style="font-size: 0.8rem;" @click="handleLoggedOutAction('buy_now', activeSize, activeVariant ? activeVariant.id : null, activeVariant ? activeVariant.stock : 0, quantity)">
+                            <i class="fa-brands fa-whatsapp me-2"></i> Buy Now
+                        </button>
+                    </div>
+                </div>
+                
+                <div x-show="!activeVariant || activeVariant.stock === 0">
+                    <button class="btn btn-secondary w-100 py-3 rounded-0" disabled id="disabled-out-of-stock-btn">Out of Stock</button>
+                </div>
+
+                <!-- Custom Elegant Login Alert/Banner -->
+                <div class="alert alert-secondary py-3 px-4 border-0 rounded-0 shadow-sm mt-3" style="font-size:0.85rem;" id="auth-required-banner">
                     <i class="fa-solid fa-lock text-primary me-2"></i> 
                     Please <a href="{% url 'login' %}?next={{ request.path }}" class="text-primary fw-bold text-decoration-none">Sign In</a> to save items, add to cart or buy.
                 </div>
@@ -266,7 +307,8 @@
                 <ul class="text-muted ps-3 mb-0" style="line-height:1.6;">
                     <li><strong>WhatsApp Status Sync:</strong> Since orders are finalized over chat, your profile order history will transition to "Confirmed" once our team confirms payment verification on WhatsApp.</li>
                     <li><strong>Color Disclaimer:</strong> Fabric colors may vary slightly due to studio lighting, screen calibration, or device monitor configurations.</li>
-                    <li><strong>Returns & Exchanges:</strong> Tightly restricted to within <strong>24 hours of delivery</strong>. A continuous <strong>unboxing video</strong> (no edits, no cuts) is mandatory to initiate a return.</li>
+                    <li><strong>Exchange Only (Damaged Items):</strong> Returns and refunds are strictly not supported. Only exchanges are applicable, and <em>only</em> if the item is received in a damaged state.</li>
+                    <li><strong>Mandatory Unboxing Video:</strong> A continuous, uncut, and unedited unboxing video (no cuts, no edits, showing shipping label details clearly) must be submitted within <strong>24 hours of delivery</strong> to initiate an exchange process.</li>
                 </ul>
             </div>
 
@@ -365,5 +407,36 @@
             });
         }
     });
+
+    function checkVariantSelected(form) {
+        const variantId = form.querySelector('input[name="variant"]').value;
+        if (!variantId) {
+            alert("Please select a size first.");
+            return false;
+        }
+        return true;
+    }
+
+    function handleLoggedOutAction(action, activeSize, activeVariantId, activeVariantStock, quantity) {
+        if (!activeSize) {
+            alert("Please select a size first.");
+            return;
+        }
+        if (!activeVariantId) {
+            alert("Selected size specification is not available.");
+            return;
+        }
+        if (activeVariantStock <= 0) {
+            alert("The selected size is currently out of stock.");
+            return;
+        }
+        
+        if (action === 'add_to_cart') {
+            alert("Please log in to add items to your cart. We will redirect you to the sign-in page.");
+            window.location.href = `{% url 'login' %}?next=${encodeURIComponent(window.location.pathname + '?action=add_to_cart&variant=' + activeVariantId + '&quantity=' + quantity)}`;
+        } else if (action === 'buy_now') {
+            window.location.href = `{% url 'login' %}?next=${encodeURIComponent('{% url "buy_now" 0 %}'.replace('0', '{{ product.id }}') + '?variant=' + activeVariantId + '&quantity=' + quantity)}`;
+        }
+    }
 </script>
 {% endblock %}

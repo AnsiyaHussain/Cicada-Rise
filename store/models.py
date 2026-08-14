@@ -253,6 +253,7 @@ class Order(models.Model):
     customer_name = models.CharField(max_length=100)
     customer_phone = models.CharField(max_length=15)
     shipping_address = models.TextField()
+    shipping_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, default='New', choices=STATUS_CHOICES)
     order_date = models.DateTimeField(auto_now_add=True)
@@ -261,6 +262,49 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order #{self.id} by {self.customer_name}"
+
+    @property
+    def subtotal(self):
+        return self.total_amount - self.shipping_charge
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        old_status = None
+        if not is_new:
+            try:
+                old_status = Order.objects.get(pk=self.pk).status
+            except Order.DoesNotExist:
+                pass
+        
+        super().save(*args, **kwargs)
+        
+        # Adjust stock based on status transition
+        DECREMENT_STATUSES = {'Confirmed', 'Packed', 'Shipped', 'Delivered'}
+        if not is_new and old_status != self.status:
+            was_decremented = old_status in DECREMENT_STATUSES
+            should_be_decremented = self.status in DECREMENT_STATUSES
+            
+            if should_be_decremented and not was_decremented:
+                # Decrement stock for all items
+                for item in self.items.all():
+                    if item.variant:
+                        item.variant.stock = max(0, item.variant.stock - item.quantity)
+                        item.variant.save()
+            elif was_decremented and not should_be_decremented:
+                # Restore stock for all items
+                for item in self.items.all():
+                    if item.variant:
+                        item.variant.stock += item.quantity
+                        item.variant.save()
+
+    def delete(self, *args, **kwargs):
+        DECREMENT_STATUSES = {'Confirmed', 'Packed', 'Shipped', 'Delivered'}
+        if self.status in DECREMENT_STATUSES:
+            for item in self.items.all():
+                if item.variant:
+                    item.variant.stock += item.quantity
+                    item.variant.save()
+        super().delete(*args, **kwargs)
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
@@ -304,6 +348,11 @@ class HomepageSettings(models.Model):
     hero_subtitle = models.TextField(default="Cicada Rise handpicks premium women's clothing from trusted wholesale partners, offering elegant seasonal pieces that feel timeless, comfortable, and polished.")
     about_title = models.CharField(max_length=200, default="Every Woman Has a Season to Rise")
     about_text = models.TextField(default="Cicada Rise was created to bring premium women's fashion into a refined, thoughtfully curated edit. Every collection is selected with care for quality, comfort, and confidence.")
+
+    # Shipping Config Details
+    shipping_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    shipping_enabled = models.BooleanField(default=True)
+    shipping_updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name_plural = "Homepage Settings"

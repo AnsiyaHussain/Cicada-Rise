@@ -27,6 +27,7 @@ urlpatterns = [
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
     path('profile/', views.profile_view, name='profile'),
+    path('auth/google-login/', views.google_login_verify, name='google_login_verify'),
     
     # Custom Premium ERP Admin Dashboard
     path('dashboard/', views.dashboard_overview, name='admin_dashboard'),

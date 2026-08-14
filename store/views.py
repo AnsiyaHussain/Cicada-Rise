@@ -1,5 +1,6 @@
 import urllib.parse
 import io
+from decimal import Decimal
 from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
@@ -9,6 +10,7 @@ from django.http import HttpResponse, JsonResponse
 from django.db.models import Q, Sum, Avg, Count
 from django.conf import settings
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
 
 from reportlab.lib.pagesizes import letter
@@ -107,6 +109,24 @@ def product_detail(request, slug):
     variants = product.variants.all()
     approved_reviews = product.reviews.filter(is_approved=True)
     
+    action = request.GET.get('action')
+    if action == 'add_to_cart' and request.user.is_authenticated:
+        variant_id = request.GET.get('variant')
+        qty = int(request.GET.get('quantity', 1))
+        if variant_id:
+            cart, _ = Cart.objects.get_or_create(user=request.user)
+            variant = get_object_or_404(ProductVariant, id=variant_id)
+            from store.models import CartItem
+            cart_item, created = CartItem.objects.get_or_create(
+                cart=cart, product=product, variant=variant,
+                defaults={'quantity': qty}
+            )
+            if not created:
+                cart_item.quantity += qty
+                cart_item.save()
+            messages.success(request, f"Added '{product.name} ({variant.size})' to your bag successfully!")
+            return redirect('product_detail', slug=slug)
+    
     in_wishlist = False
     if request.user.is_authenticated:
         in_wishlist = Wishlist.objects.filter(user=request.user, product=product).exists()
@@ -203,7 +223,17 @@ def toggle_wishlist(request, product_id):
 @login_required
 def cart_view(request):
     cart, created = Cart.objects.get_or_create(user=request.user)
-    return render(request, 'store/cart.html', {'cart': cart})
+    brand_settings = HomepageSettings.objects.first()
+    if not brand_settings:
+        brand_settings = HomepageSettings.objects.create()
+    shipping = brand_settings.shipping_charge if brand_settings.shipping_enabled else Decimal('0.00')
+    total = cart.total_price + shipping
+    return render(request, 'store/cart.html', {
+        'cart': cart,
+        'shipping_charge': shipping,
+        'shipping_enabled': brand_settings.shipping_enabled,
+        'total_estimated': total
+    })
 
 @login_required
 @require_POST
@@ -274,11 +304,17 @@ def update_cart(request, item_id):
     cart_count = cart.items_count
     
     if request.headers.get('HX-Request'):
+        brand_settings = HomepageSettings.objects.first()
+        if not brand_settings:
+            brand_settings = HomepageSettings.objects.create()
+        shipping = brand_settings.shipping_charge if brand_settings.shipping_enabled else Decimal('0.00')
+        total = cart.total_price + shipping
+        
         html = f"""
         <div id="cart-item-qty-{item_id}" hx-swap-oob="true">{cart_item.quantity if cart_item.id and cart_item.quantity else 0}</div>
         <div id="cart-item-subtotal-{item_id}" hx-swap-oob="true">₹{cart_item.subtotal:,.2f}</div>
         <div id="cart-total-price" hx-swap-oob="true">₹{cart.total_price:,.2f}</div>
-        <div id="cart-total-price-summary" hx-swap-oob="true">₹{cart.total_price:,.2f}</div>
+        <div id="cart-total-price-summary" hx-swap-oob="true">₹{total:,.2f}</div>
         """
         response = HttpResponse(html)
         response['HX-Trigger'] = f'{{"updateCartCount": {cart_count}}}'
@@ -305,11 +341,14 @@ def remove_from_cart(request, item_id):
 # ----------------- WHATSAPP ORDER / BUY NOW WORKFLOW -----------------
 
 @login_required
-@require_POST
 def buy_now(request, product_id):
     product = get_object_or_404(Product, id=product_id)
-    variant_id = request.POST.get('variant')
-    quantity = int(request.POST.get('quantity', 1))
+    if request.method == 'POST':
+        variant_id = request.POST.get('variant')
+        quantity = int(request.POST.get('quantity', 1))
+    else:
+        variant_id = request.GET.get('variant')
+        quantity = int(request.GET.get('quantity', 1))
     
     variant = None
     if variant_id:
@@ -330,17 +369,21 @@ def buy_now(request, product_id):
         messages.warning(request, "Please fill in your shipping details before buying.")
         return redirect('profile')
         
-    # Decrement stock
-    variant.stock -= quantity
-    variant.save()
-    
     # Create Order record
+    brand_settings = HomepageSettings.objects.first()
+    if not brand_settings:
+        brand_settings = HomepageSettings.objects.create()
+    shipping = brand_settings.shipping_charge if brand_settings.shipping_enabled else Decimal('0.00')
+    subtotal = variant.price * quantity
+    total = subtotal + shipping
+
     order = Order.objects.create(
         user=request.user,
         customer_name=f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username,
         customer_phone=profile.phone,
         shipping_address=f"{profile.address}, {profile.city}, {profile.state} - {profile.pin_code}",
-        total_amount=variant.price * quantity,
+        shipping_charge=shipping,
+        total_amount=total,
         status='New'
     )
     
@@ -352,10 +395,6 @@ def buy_now(request, product_id):
         price=variant.price
     )
     
-    brand_settings = HomepageSettings.objects.first()
-    if not brand_settings:
-        brand_settings = HomepageSettings.objects.create()
-        
     whatsapp_phone = format_whatsapp_number(brand_settings.whatsapp_number)
     customer_name = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
     
@@ -365,9 +404,10 @@ def buy_now(request, product_id):
         "• *Product Name*: {prod_name}\n"
         "• *Product Code (SKU)*: {prod_sku}\n"
         "• *Size*: {size}\n"
-        # "• *Color*: {color}\n"
         "• *Quantity*: {qty}\n"
-        "• *Total Value*: ₹{price:,.2f}\n\n"
+        "• *Subtotal*: ₹{subtotal:,.2f}\n"
+        "• *Shipping*: ₹{shipping:,.2f}\n"
+        "• *Total Value*: ₹{total:,.2f}\n\n"
         "👤 *CUSTOMER DETAILS*\n"
         "• *Name*: {cust_name}\n"
         "• *Phone*: {cust_phone}\n"
@@ -381,7 +421,7 @@ def buy_now(request, product_id):
         "• *Account Number*: {bank_acc}\n"
         "• *IFSC Code*: {bank_ifsc}\n"
         "• *Branch*: {bank_branch}\n\n"
-        "*Please complete the payment of ₹{price:,.2f} using either the UPI QR code or bank transfer, and share the transaction screenshot here to confirm your order.*"
+        "*Please complete the payment of ₹{total:,.2f} using either the UPI QR code or bank transfer, and share the transaction screenshot here to confirm your order.*"
     )
     
     qr_code_url = request.build_absolute_uri('/static/store/images/upi_qr_code.jpg')
@@ -393,7 +433,9 @@ def buy_now(request, product_id):
         size=variant.size,
         color=variant.color,
         qty=quantity,
-        price=variant.price * quantity,
+        subtotal=subtotal,
+        shipping=shipping,
+        total=total,
         cust_name=customer_name,
         cust_phone=profile.phone,
         cust_addr=cust_full_address,
@@ -430,12 +472,20 @@ def checkout_cart(request):
             messages.error(request, f"Sorry, '{item.product.name} ({item.variant.size})' only has {item.variant.stock} left. Please adjust your cart.")
             return redirect('cart')
             
+    brand_settings = HomepageSettings.objects.first()
+    if not brand_settings:
+        brand_settings = HomepageSettings.objects.create()
+    shipping = brand_settings.shipping_charge if brand_settings.shipping_enabled else Decimal('0.00')
+    subtotal = cart.total_price
+    total = subtotal + shipping
+
     order = Order.objects.create(
         user=request.user,
         customer_name=f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username,
         customer_phone=profile.phone,
         shipping_address=f"{profile.address}, {profile.city}, {profile.state} - {profile.pin_code}",
-        total_amount=cart.total_price,
+        shipping_charge=shipping,
+        total_amount=total,
         status='New'
     )
     
@@ -448,9 +498,7 @@ def checkout_cart(request):
             quantity=item.quantity,
             price=item.price
         )
-        if item.variant:
-            item.variant.stock -= item.quantity
-            item.variant.save()
+        pass
             
         items_summary.append(
             f"• *{item.product.name}* ({item.variant.size if item.variant else 'N/A'}/{item.variant.color if item.variant else 'N/A'})\n"
@@ -459,10 +507,6 @@ def checkout_cart(request):
         
     summary_text = "\n".join(items_summary)
     
-    brand_settings = HomepageSettings.objects.first()
-    if not brand_settings:
-        brand_settings = HomepageSettings.objects.create()
-        
     whatsapp_phone = format_whatsapp_number(brand_settings.whatsapp_number)
     customer_name = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
     
@@ -470,6 +514,8 @@ def checkout_cart(request):
         "Hello Cicada Rise! I would like to place a Cart Order:\n\n"
         "✨ *ORDER DETAILS* ✨\n"
         "{summary}\n\n"
+        "• *Subtotal*: ₹{subtotal:,.2f}\n"
+        "• *Shipping*: ₹{shipping:,.2f}\n"
         "⭐ *ORDER TOTAL*: ₹{total:,.2f}\n\n"
         "👤 *CUSTOMER DETAILS*\n"
         "• *Name*: {cust_name}\n"
@@ -492,7 +538,9 @@ def checkout_cart(request):
     
     msg = msg_template.format(
         summary=summary_text,
-        total=cart.total_price,
+        subtotal=subtotal,
+        shipping=shipping,
+        total=total,
         cust_name=customer_name,
         cust_phone=profile.phone,
         cust_addr=cust_full_address,
@@ -538,7 +586,12 @@ def login_view(request):
         else:
             messages.error(request, "Invalid username or password.")
             
-    return render(request, 'store/login.html')
+    google_client_id = getattr(settings, 'GOOGLE_CLIENT_ID', '')
+    if not google_client_id:
+        import os
+        google_client_id = os.environ.get('GOOGLE_CLIENT_ID', '')
+        
+    return render(request, 'store/login.html', {'google_client_id': google_client_id})
 
 def register_view(request):
     if request.user.is_authenticated:
@@ -558,13 +611,92 @@ def register_view(request):
             messages.success(request, "Registration successful! Please log in with your credentials.")
             return redirect('login')
             
-    return render(request, 'store/register.html', {'form': form})
+    google_client_id = getattr(settings, 'GOOGLE_CLIENT_ID', '')
+    if not google_client_id:
+        import os
+        google_client_id = os.environ.get('GOOGLE_CLIENT_ID', '')
+        
+    return render(request, 'store/register.html', {'form': form, 'google_client_id': google_client_id})
 
 @login_required
 def logout_view(request):
     logout(request)
     messages.success(request, "Logged out successfully.")
     return redirect('home')
+
+@csrf_exempt
+def google_login_verify(request):
+    import urllib.request
+    import json
+    from django.http import JsonResponse
+    from django.contrib import messages
+    from django.conf import settings
+    
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            id_token = data.get('credential')
+            next_url = data.get('next', 'home')
+            from django.shortcuts import resolve_url
+            try:
+                next_url = resolve_url(next_url)
+            except Exception:
+                if not next_url.startswith('/'):
+                    next_url = '/'
+        except Exception:
+            return JsonResponse({'success': False, 'error': 'Invalid request payload.'}, status=400)
+            
+        if not id_token:
+            return JsonResponse({'success': False, 'error': 'No credential token provided.'}, status=400)
+            
+        try:
+            url = f"https://oauth2.googleapis.com/tokeninfo?id_token={id_token}"
+            req = urllib.request.Request(url)
+            with urllib.request.urlopen(req) as response:
+                token_info = json.loads(response.read().decode())
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': f'Failed to verify token: {str(e)}'}, status=400)
+            
+        client_id = getattr(settings, 'GOOGLE_CLIENT_ID', None)
+        if not client_id:
+            import os
+            client_id = os.environ.get('GOOGLE_CLIENT_ID')
+            
+        if client_id and token_info.get('aud') != client_id:
+            return JsonResponse({'success': False, 'error': 'Audience verification failed.'}, status=400)
+            
+        if token_info.get('email_verified') not in ('true', True):
+            return JsonResponse({'success': False, 'error': 'Google email is not verified.'}, status=400)
+            
+        email = token_info.get('email')
+        first_name = token_info.get('given_name', '')
+        last_name = token_info.get('family_name', '')
+        
+        user = User.objects.filter(email=email).first()
+        if not user:
+            username = email.split('@')[0]
+            if User.objects.filter(username=username).exists():
+                import random
+                username = f"{username}_{random.randint(100, 999)}"
+                
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                first_name=first_name,
+                last_name=last_name
+            )
+            Cart.objects.get_or_create(user=user)
+        else:
+            Cart.objects.get_or_create(user=user)
+            
+        login(request, user)
+        messages.success(request, f"Welcome back, {user.first_name or user.username}!")
+        if user.is_staff:
+            from django.shortcuts import resolve_url
+            next_url = resolve_url('admin_dashboard')
+        return JsonResponse({'success': True, 'redirect_url': next_url})
+        
+    return JsonResponse({'success': False, 'error': 'Only POST method is allowed.'}, status=405)
 
 @login_required
 def profile_view(request):
@@ -1086,6 +1218,25 @@ def export_order_detail_pdf(request, order_id):
             Paragraph(f"Rs. {item.subtotal:,.2f}", table_cell_style)
         ])
 
+    subtotal_sum = sum(item.subtotal for item in order_items)
+    if order.shipping_charge > 0:
+        items_data.append([
+            Paragraph("Subtotal", table_cell_style),
+            Paragraph("", table_cell_style),
+            Paragraph("", table_cell_style),
+            Paragraph("", table_cell_style),
+            Paragraph("", table_cell_style),
+            Paragraph(f"Rs. {subtotal_sum:,.2f}", table_cell_style)
+        ])
+        items_data.append([
+            Paragraph("Shipping Charge", table_cell_style),
+            Paragraph("", table_cell_style),
+            Paragraph("", table_cell_style),
+            Paragraph("", table_cell_style),
+            Paragraph("", table_cell_style),
+            Paragraph(f"Rs. {order.shipping_charge:,.2f}", table_cell_style)
+        ])
+
     items_data.append([
         Paragraph("<b>GRAND TOTAL</b>", table_cell_style),
         Paragraph("", table_cell_style),
@@ -1475,8 +1626,22 @@ def dashboard_content(request):
         brand_settings.about_title = request.POST.get('about_title')
         brand_settings.about_text = request.POST.get('about_text')
         
+        # Shipping validation and save
+        shipping_charge = request.POST.get('shipping_charge')
+        shipping_enabled = request.POST.get('shipping_enabled') in ('on', 'true')
+        try:
+            shipping_val = Decimal(shipping_charge)
+            if shipping_val < 0:
+                messages.error(request, "Shipping charge cannot be negative.")
+                return redirect('dashboard_content')
+            brand_settings.shipping_charge = shipping_val
+            brand_settings.shipping_enabled = shipping_enabled
+        except (ValueError, TypeError):
+            messages.error(request, "Invalid shipping charge input.")
+            return redirect('dashboard_content')
+            
         brand_settings.save()
-        messages.success(request, "Brand and Homepage Settings updated successfully.")
+        messages.success(request, "Brand, Homepage, and Shipping Settings updated successfully.")
         return redirect('dashboard_content')
         
     return render(request, 'store/dashboard/content.html', {

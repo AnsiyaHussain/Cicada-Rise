@@ -27,6 +27,35 @@
                     <button class="btn btn-premium w-100 py-3 mb-3" type="submit" id="login-submit-btn">Sign In</button>
                 </form>
 
+                <div class="text-center my-3 text-muted" style="font-size:0.8rem; position:relative;">
+                    <span style="background:#fff; padding:0 10px; position:relative; z-index:2;">or</span>
+                    <div style="border-bottom:1px solid #ddd; position:absolute; top:50%; left:0; right:0; z-index:1;"></div>
+                </div>
+
+                {% if google_client_id %}
+                    <div id="g_id_onload"
+                         data-client_id="{{ google_client_id }}"
+                         data-context="signin"
+                         data-ux_mode="popup"
+                         data-callback="handleCredentialResponse"
+                         data-auto_select="false"
+                         data-itp_support="true">
+                    </div>
+                    <div class="g_id_signin w-100 mb-3"
+                         data-type="standard"
+                         data-shape="rectangular"
+                         data-theme="outline"
+                         data-text="continue_with"
+                         data-size="large"
+                         data-logo_alignment="left"
+                         data-width="100%">
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning py-2 text-center" style="font-size:0.75rem;">
+                        <i class="fa-solid fa-circle-exclamation text-warning"></i> Google Login is currently unconfigured (requires GOOGLE_CLIENT_ID).
+                    </div>
+                {% endif %}
+
                 <div class="text-center mt-3">
                     <p class="text-muted mb-0" style="font-size:0.85rem;">New to Cicada Rise? <a href="{% url 'register' %}" class="text-primary fw-bold text-decoration-none" id="register-link-login">Create an Account</a></p>
                 </div>
@@ -34,4 +63,36 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+function handleCredentialResponse(response) {
+    const nextUrl = new URLSearchParams(window.location.search).get('next') || '/';
+    fetch("{% url 'google_login_verify' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify({
+            credential: response.credential,
+            next: nextUrl
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = data.redirect_url;
+        } else {
+            alert("Google Sign-In failed: " + (data.error || "Unknown error"));
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Google Sign-In connection error.");
+    });
+}
+</script>
 {% endblock %}

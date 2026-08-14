@@ -115,14 +115,20 @@
                     </div>
                     <div class="d-flex justify-content-between mb-3" style="font-size:0.9rem;">
                         <span class="text-muted">Shipping Charges:</span>
-                        <span class="text-success fw-medium">Free (Promotional)</span>
+                        <strong class="text-dark" id="cart-shipping-charge">
+                            {% if shipping_enabled and shipping_charge > 0 %}
+                                ₹{{ shipping_charge|floatformat:2 }}
+                            {% else %}
+                                Free
+                            {% endif %}
+                        </strong>
                     </div>
                     
                     <hr>
                     
                     <div class="d-flex justify-content-between mb-4">
                         <span class="font-body fw-bold text-uppercase text-secondary" style="font-size:0.8rem; letter-spacing:0.05em;">Total Estimated:</span>
-                        <strong class="text-primary fs-5 font-display" id="cart-total-price-summary">₹{{ cart.total_price|floatformat:2 }}</strong>
+                        <strong class="text-primary fs-5 font-display" id="cart-total-price-summary">₹{{ total_estimated|floatformat:2 }}</strong>
                     </div>
 
                     <!-- Address warning -->

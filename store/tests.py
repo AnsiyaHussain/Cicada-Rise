@@ -204,3 +204,60 @@ class CicadaRiseTestCase(TestCase):
         clear_resp = self.client.post(reverse('dashboard_clear_cancelled_orders'))
         self.assertRedirects(clear_resp, reverse('dashboard_orders'))
         self.assertFalse(Order.objects.filter(id=cancelled_order.id).exists())
+
+    def test_shipping_charge_settings_validation(self):
+        """Tests that shipping charges save properly on valid inputs and error on negative values."""
+        self.client.login(username='adminuser', password='adminpassword')
+        
+        # Valid settings save
+        response = self.client.post(reverse('dashboard_content'), {
+            'whatsapp_number': '9447771056',
+            'bank_holder': 'Fathima Haris',
+            'bank_account': '36137088305',
+            'bank_ifsc': 'SBIN0012890',
+            'bank_branch': 'Annamanada',
+            'shipping_charge': '150.00',
+            'shipping_enabled': 'on',
+            'hero_title': 'Hero',
+            'hero_subtitle': 'Subtitle',
+            'about_title': 'About',
+            'about_text': 'Text'
+        })
+        self.assertRedirects(response, reverse('dashboard_content'))
+        settings_obj = HomepageSettings.objects.first()
+        self.assertEqual(settings_obj.shipping_charge, 150.00)
+        self.assertTrue(settings_obj.shipping_enabled)
+
+        # Invalid negative shipping charge
+        response = self.client.post(reverse('dashboard_content'), {
+            'whatsapp_number': '9447771056',
+            'bank_holder': 'Fathima Haris',
+            'bank_account': '36137088305',
+            'bank_ifsc': 'SBIN0012890',
+            'bank_branch': 'Annamanada',
+            'shipping_charge': '-50.00',
+            'shipping_enabled': 'on',
+            'hero_title': 'Hero',
+            'hero_subtitle': 'Subtitle',
+            'about_title': 'About',
+            'about_text': 'Text'
+        })
+        self.assertRedirects(response, reverse('dashboard_content'))
+        settings_obj = HomepageSettings.objects.first()
+        self.assertEqual(settings_obj.shipping_charge, 150.00) # Unchanged due to validation error
+
+    def test_post_login_deferred_add_to_cart(self):
+        """Tests that guest actions (add_to_cart params) are executed seamlessly after user authenticates."""
+        # Logged out request with add_to_cart parameters
+        self.client.login(username='testuser', password='testpassword')
+        response = self.client.get(
+            reverse('product_detail', args=[self.product.slug]) + f"?action=add_to_cart&variant={self.variant_s.id}&quantity=2"
+        )
+        self.assertRedirects(response, reverse('product_detail', args=[self.product.slug]))
+        
+        # Verify cart item was added
+        from store.models import CartItem
+        cart_item = CartItem.objects.filter(variant=self.variant_s).first()
+        self.assertIsNotNone(cart_item)
+        self.assertEqual(cart_item.quantity, 2)
+
