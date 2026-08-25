@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
@@ -36,6 +37,7 @@ class Product(models.Model):
     description = models.TextField()
     base_price = models.DecimalField(max_digits=10, decimal_places=2)
     sale_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Promotional discounted price")
+    shipping_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="Shipping Charge")
     
     # Redesign specs
     fabric_details = models.TextField(blank=True)
@@ -50,14 +52,24 @@ class Product(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            base_slug = slugify(self.name) or "product"
+            slug = base_slug
+            counter = 1
+            while Product.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
         if not self.sku:
             import random
             initials = "".join([w[0].upper() for w in self.name.split() if w.isalnum()])[:4]
             if not initials:
                 initials = "PROD"
-            rand_num = random.randint(1000, 9999)
-            self.sku = f"CR-{initials}-{rand_num}"
+            while True:
+                rand_num = random.randint(1000, 9999)
+                candidate = f"CR-{initials}-{rand_num}"
+                if not Product.objects.filter(sku=candidate).exclude(pk=self.pk).exists():
+                    self.sku = candidate
+                    break
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -216,6 +228,27 @@ class Cart(models.Model):
     @property
     def items_count(self):
         return sum(item.quantity for item in self.items.all())
+
+    @property
+    def shipping_charge(self):
+        brand_settings = HomepageSettings.objects.first()
+        if brand_settings and not brand_settings.shipping_enabled:
+            return Decimal('0.00')
+        
+        has_custom = False
+        total_shipping = Decimal('0.00')
+        seen_products = set()
+        for item in self.items.all():
+            p_ship = item.product.shipping_charge
+            if p_ship and p_ship > 0:
+                has_custom = True
+                if item.product_id not in seen_products:
+                    seen_products.add(item.product_id)
+                    total_shipping += p_ship
+        
+        if has_custom:
+            return total_shipping
+        return brand_settings.shipping_charge if brand_settings else Decimal('0.00')
 
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')

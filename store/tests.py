@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth.models import User
 from django.urls import reverse
@@ -260,4 +261,242 @@ class CicadaRiseTestCase(TestCase):
         cart_item = CartItem.objects.filter(variant=self.variant_s).first()
         self.assertIsNotNone(cart_item)
         self.assertEqual(cart_item.quantity, 2)
+
+    def test_admin_changing_product_shipping_charge(self):
+        """1. Tests admin changing a product's shipping charge."""
+        self.client.login(username='adminuser', password='adminpassword')
+        response = self.client.post(reverse('dashboard_products'), {
+            'product_id': self.product.id,
+            'name': self.product.name,
+            'sku': self.product.sku,
+            'category': self.category.id,
+            'base_price': '5000.00',
+            'shipping_charge': '120.00',
+            'collection': 'Cicada Signature',
+            'description': 'Updated desc',
+            'sizes': ['S'],
+            'stock_S': '10'
+        })
+        self.assertRedirects(response, reverse('dashboard_products'))
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.shipping_charge, 120.00)
+
+    def test_correct_shipping_appearing_in_checkout(self):
+        """2. Tests correct shipping appearing in checkout."""
+        from decimal import Decimal
+        self.product.shipping_charge = Decimal('90.00')
+        self.product.save()
+
+        # Fill profile for user
+        profile = self.user.profile
+        profile.phone = "9447771056"
+        profile.address = "123 Main St"
+        profile.city = "Bangalore"
+        profile.state = "Karnataka"
+        profile.pin_code = "560001"
+        profile.save()
+
+        self.client.login(username='testuser', password='testpassword')
+        response = self.client.post(reverse('buy_now', args=[self.product.id]), {
+            'variant_id': self.variant_s.id,
+            'quantity': 1
+        })
+        self.assertEqual(response.status_code, 302)
+        latest_order = Order.objects.latest('id')
+        self.assertEqual(latest_order.shipping_charge, Decimal('90.00'))
+        self.assertEqual(latest_order.total_amount, Decimal('5090.00'))
+
+    def test_client_side_shipping_price_tampering_ignored(self):
+        """3. Tests client-side shipping-price tampering being ignored."""
+        from decimal import Decimal
+        self.product.base_price = Decimal('3000.00')
+        self.product.shipping_charge = Decimal('70.00')
+        self.product.save()
+
+        profile = self.user.profile
+        profile.phone = "9447771056"
+        profile.address = "123 Main St"
+        profile.save()
+
+        self.client.login(username='testuser', password='testpassword')
+        # Attempt to tamper with price and shipping in POST payload
+        response = self.client.post(reverse('buy_now', args=[self.product.id]), {
+            'variant_id': self.variant_s.id,
+            'quantity': 1,
+            'price': '1.00',
+            'shipping_charge': '0.00'
+        })
+        self.assertEqual(response.status_code, 302)
+        latest_order = Order.objects.latest('id')
+        # Server must use DB values (3000.00 + 70.00)
+        self.assertEqual(latest_order.shipping_charge, Decimal('70.00'))
+        self.assertEqual(latest_order.total_amount, Decimal('3070.00'))
+
+    def test_multiple_products_shipping_calculation(self):
+        """4. Tests multiple distinct products in cart combined shipping."""
+        from decimal import Decimal
+        from store.models import Cart, CartItem
+
+        self.product.shipping_charge = Decimal('70.00')
+        self.product.save()
+
+        product2 = Product.objects.create(
+            category=self.category,
+            name="Silk Kurta",
+            sku="CR-TEST-SK",
+            description="Silk Kurta desc",
+            base_price=2000.00,
+            shipping_charge=Decimal('50.00')
+        )
+        variant2 = ProductVariant.objects.create(product=product2, size="M", color="Red", stock=5)
+
+        cart, _ = Cart.objects.get_or_create(user=self.user)
+        CartItem.objects.create(cart=cart, product=self.product, variant=self.variant_s, quantity=1)
+        CartItem.objects.create(cart=cart, product=product2, variant=variant2, quantity=1)
+
+        # Total shipping should be 70 + 50 = 120.00
+        self.assertEqual(cart.shipping_charge, Decimal('120.00'))
+
+    def test_product_quantity_greater_than_one(self):
+        """5. Tests product quantity > 1 does not multiply shipping charge."""
+        from decimal import Decimal
+        from store.models import Cart, CartItem
+
+        self.product.shipping_charge = Decimal('80.00')
+        self.product.save()
+
+        cart, _ = Cart.objects.get_or_create(user=self.user)
+        CartItem.objects.create(cart=cart, product=self.product, variant=self.variant_s, quantity=3)
+
+        # Shipping charge for qty 3 of same product remains base rate 80.00
+        self.assertEqual(cart.shipping_charge, Decimal('80.00'))
+
+    def test_historical_orders_retaining_original_shipping(self):
+        """6. Tests historical orders retaining their original shipping charge after product updates."""
+        from decimal import Decimal
+        order = Order.objects.create(
+            user=self.user,
+            customer_name="Historical Order Client",
+            customer_phone="9447771056",
+            shipping_address="Test Address",
+            shipping_charge=Decimal('70.00'),
+            total_amount=Decimal('5070.00'),
+            status="Confirmed"
+        )
+        # Admin updates product shipping charge later
+        self.product.shipping_charge = Decimal('150.00')
+        self.product.save()
+
+        # Past order must retain 70.00
+        order.refresh_from_db()
+        self.assertEqual(order.shipping_charge, Decimal('70.00'))
+        self.assertEqual(order.total_amount, Decimal('5070.00'))
+
+    def test_product_creation_and_persistence(self):
+        """Tests product creation via dashboard POST and persistence in PostgreSQL."""
+        self.client.login(username='adminuser', password='adminpassword')
+        response = self.client.post(reverse('dashboard_products'), {
+            'name': 'Cicada Test Product',
+            'sku': 'CR-TEST-001',
+            'category': self.category.id,
+            'base_price': '1499.00',
+            'sale_price': '1399.00',
+            'shipping_charge': '90.00',
+            'collection': 'Cicada Signature',
+            'description': 'Luxury test garment',
+            'fabric_details': 'Pure Silk',
+            'care_instructions': 'Dry Clean',
+            'sizes': ['S', 'M'],
+            'stock_S': '10',
+            'stock_M': '5'
+        })
+        self.assertRedirects(response, reverse('dashboard_products'))
+
+        # Verify database-backed queryset
+        prod = Product.objects.filter(sku='CR-TEST-001').first()
+        self.assertIsNotNone(prod)
+        self.assertEqual(prod.name, 'Cicada Test Product')
+        self.assertEqual(prod.base_price, Decimal('1499.00'))
+        self.assertEqual(prod.sale_price, Decimal('1399.00'))
+        self.assertEqual(prod.shipping_charge, Decimal('90.00'))
+        self.assertEqual(prod.total_stock, 15)
+
+    def test_duplicate_sku_friendly_error(self):
+        """Tests that submitting a duplicate SKU produces a friendly message without 500 error."""
+        self.client.login(username='adminuser', password='adminpassword')
+        response = self.client.post(reverse('dashboard_products'), {
+            'name': 'Duplicate SKU Product',
+            'sku': self.product.sku, # existing SKU
+            'category': self.category.id,
+            'base_price': '1000.00',
+            'shipping_charge': '50.00',
+            'sizes': ['S']
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+        messages = [m.message for m in response.context['messages']]
+        self.assertTrue(any("already exists" in m for m in messages))
+
+    def test_similar_names_unique_slugs(self):
+        """Tests that products with identical names generate unique collision-proof slugs."""
+        prod1 = Product.objects.create(category=self.category, name="Silk Kaftan", base_price=1000)
+        prod2 = Product.objects.create(category=self.category, name="Silk Kaftan", base_price=1000)
+        prod3 = Product.objects.create(category=self.category, name="Silk Kaftan", base_price=1000)
+
+        self.assertEqual(prod1.slug, 'silk-kaftan')
+        self.assertEqual(prod2.slug, 'silk-kaftan-1')
+        self.assertEqual(prod3.slug, 'silk-kaftan-2')
+
+    def test_invalid_price_and_shipping_handling(self):
+        """Tests that negative or invalid price and shipping values return validation error redirects."""
+        self.client.login(username='adminuser', password='adminpassword')
+        
+        # Negative base price
+        resp = self.client.post(reverse('dashboard_products'), {
+            'name': 'Invalid Price',
+            'category': self.category.id,
+            'base_price': '-500.00',
+            'sizes': ['S']
+        }, follow=True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(any("cannot be negative" in m.message for m in resp.context['messages']))
+
+        # Negative shipping
+        resp = self.client.post(reverse('dashboard_products'), {
+            'name': 'Invalid Shipping',
+            'category': self.category.id,
+            'base_price': '500.00',
+            'shipping_charge': '-20.00',
+            'sizes': ['S']
+        }, follow=True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(any("cannot be negative" in m.message for m in resp.context['messages']))
+
+    def test_image_upload_handling(self):
+        """Tests uploading an image during product creation."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.login(username='adminuser', password='adminpassword')
+        
+        # 1x1 8-bit GIF image
+        gif_bytes = (
+            b'GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00,\x00'
+            b'\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+        )
+        dummy_img = SimpleUploadedFile('test_image.gif', gif_bytes, content_type='image/gif')
+
+        response = self.client.post(reverse('dashboard_products'), {
+            'name': 'Image Upload Product',
+            'sku': 'CR-IMG-001',
+            'category': self.category.id,
+            'base_price': '2500.00',
+            'shipping_charge': '70.00',
+            'sizes': ['S'],
+            'images': [dummy_img]
+        })
+        self.assertRedirects(response, reverse('dashboard_products'))
+
+        prod = Product.objects.filter(sku='CR-IMG-001').first()
+        self.assertIsNotNone(prod)
+        self.assertEqual(prod.images.count(), 1)
+
+
 

@@ -653,4 +653,47 @@ a:hover, a:focus {
     .navbar-icons {
         display: none !important; /* Icons move to bottom bar */
     }
+
+    /* Shop Page Mobile Product Card Alignment (320px - 430px) */
+    .product-card {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+
+    .product-image-wrapper {
+        position: relative;
+        width: 100%;
+        padding-top: 110%;
+        overflow: hidden;
+    }
+
+    .product-card-body {
+        padding: 0.85rem;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+    }
+
+    .product-card-title {
+        font-size: 0.9rem;
+        font-weight: 500;
+        line-height: 1.3em;
+        height: 2.6em;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        margin-bottom: 0.3rem;
+    }
+
+    .product-card-price {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-top: auto;
+        margin-bottom: 0.4rem;
+    }
 }

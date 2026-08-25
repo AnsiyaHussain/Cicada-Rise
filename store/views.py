@@ -226,7 +226,7 @@ def cart_view(request):
     brand_settings = HomepageSettings.objects.first()
     if not brand_settings:
         brand_settings = HomepageSettings.objects.create()
-    shipping = brand_settings.shipping_charge if brand_settings.shipping_enabled else Decimal('0.00')
+    shipping = cart.shipping_charge
     total = cart.total_price + shipping
     return render(request, 'store/cart.html', {
         'cart': cart,
@@ -373,7 +373,13 @@ def buy_now(request, product_id):
     brand_settings = HomepageSettings.objects.first()
     if not brand_settings:
         brand_settings = HomepageSettings.objects.create()
-    shipping = brand_settings.shipping_charge if brand_settings.shipping_enabled else Decimal('0.00')
+    if brand_settings.shipping_enabled:
+        if product.shipping_charge and product.shipping_charge > 0:
+            shipping = product.shipping_charge
+        else:
+            shipping = brand_settings.shipping_charge
+    else:
+        shipping = Decimal('0.00')
     subtotal = variant.price * quantity
     total = subtotal + shipping
 
@@ -475,7 +481,7 @@ def checkout_cart(request):
     brand_settings = HomepageSettings.objects.first()
     if not brand_settings:
         brand_settings = HomepageSettings.objects.create()
-    shipping = brand_settings.shipping_charge if brand_settings.shipping_enabled else Decimal('0.00')
+    shipping = cart.shipping_charge
     subtotal = cart.total_price
     total = subtotal + shipping
 
@@ -953,6 +959,17 @@ def dashboard_update_order_status(request, order_id):
         
     if notes is not None:
         order.admin_notes = notes
+
+    shipping_input = request.POST.get('shipping_charge')
+    if shipping_input is not None and shipping_input != '':
+        try:
+            new_shipping = Decimal(shipping_input)
+            if new_shipping >= 0:
+                diff = new_shipping - order.shipping_charge
+                order.shipping_charge = new_shipping
+                order.total_amount += diff
+        except (ValueError, TypeError):
+            pass
         
     order.save()
     
@@ -1307,111 +1324,180 @@ def dashboard_products(request):
                 return redirect('dashboard_products')
                 
         product_id = request.POST.get('product_id')
-        name = request.POST.get('name')
-        sku = request.POST.get('sku') or None
+        name = request.POST.get('name', '').strip()
+        if not name:
+            messages.error(request, "Product name is required.")
+            return redirect('dashboard_products')
+
+        sku = request.POST.get('sku')
+        if sku:
+            sku = sku.strip()
+        if not sku:
+            sku = None
+
         cat_id = request.POST.get('category')
+        if not cat_id:
+            messages.error(request, "Please select a valid category.")
+            return redirect('dashboard_products')
+            
+        category = Category.objects.filter(id=cat_id).first()
+        if not category:
+            messages.error(request, "Selected category does not exist.")
+            return redirect('dashboard_products')
+
         price = request.POST.get('base_price')
-        sale_price = request.POST.get('sale_price') or None
-        collection = request.POST.get('collection')
-        desc = request.POST.get('description')
-        fabric = request.POST.get('fabric_details')
-        care = request.POST.get('care_instructions')
+        sale_price = request.POST.get('sale_price')
+        shipping_charge_input = request.POST.get('shipping_charge')
+        collection = request.POST.get('collection') or "Cicada Signature"
+        desc = request.POST.get('description') or ""
+        fabric = request.POST.get('fabric_details') or ""
+        care = request.POST.get('care_instructions') or ""
         
+        # Validate base price
+        try:
+            base_price_val = Decimal(price)
+            if base_price_val < 0:
+                messages.error(request, "Base price cannot be negative.")
+                return redirect('dashboard_products')
+        except (ValueError, TypeError, Exception):
+            messages.error(request, "Please enter a valid base price.")
+            return redirect('dashboard_products')
+
+        # Validate sale price if provided
+        sale_price_val = None
+        if sale_price and sale_price.strip():
+            try:
+                sale_price_val = Decimal(sale_price.strip())
+                if sale_price_val < 0:
+                    messages.error(request, "Sale price cannot be negative.")
+                    return redirect('dashboard_products')
+            except (ValueError, TypeError, Exception):
+                messages.error(request, "Please enter a valid sale price.")
+                return redirect('dashboard_products')
+
+        # Validate shipping charge
+        shipping_val = Decimal('0.00')
+        if shipping_charge_input is not None and shipping_charge_input.strip() != '':
+            try:
+                shipping_val = Decimal(shipping_charge_input.strip())
+                if shipping_val < 0:
+                    messages.error(request, "Shipping charge cannot be negative.")
+                    return redirect('dashboard_products')
+            except (ValueError, TypeError, Exception):
+                messages.error(request, "Please enter a valid shipping charge.")
+                return redirect('dashboard_products')
+
+        # Validate SKU uniqueness
+        if sku:
+            sku_query = Product.objects.filter(sku__iexact=sku)
+            if product_id:
+                sku_query = sku_query.exclude(id=product_id)
+            if sku_query.exists():
+                messages.error(request, f"This SKU '{sku}' already exists. Please enter a unique SKU.")
+                return redirect('dashboard_products')
+
         is_featured = 'is_featured' in request.POST
         is_seasonal = 'is_seasonal' in request.POST
         is_cicada_wear = 'is_cicada_wear' in request.POST
         
-        category = get_object_or_404(Category, id=cat_id)
-        
         selected_sizes = request.POST.getlist('sizes')
         all_possible_sizes = ['S', 'M', 'L', 'XL', 'XXL', '3XL']
         
-        if product_id:
-            product = get_object_or_404(Product, id=product_id)
-            product.name = name
-            product.sku = sku
-            product.category = category
-            product.base_price = price
-            product.sale_price = sale_price
-            product.collection = collection
-            product.description = desc
-            product.fabric_details = fabric
-            product.care_instructions = care
-            product.is_featured = is_featured
-            product.is_seasonal = is_seasonal
-            product.is_cicada_wear = is_cicada_wear
-            product.save()
+        try:
+            from django.db import transaction
+            with transaction.atomic():
+                if product_id:
+                    product = get_object_or_404(Product, id=product_id)
+                    product.name = name
+                    product.sku = sku
+                    product.category = category
+                    product.base_price = base_price_val
+                    product.sale_price = sale_price_val
+                    product.shipping_charge = shipping_val
+                    product.collection = collection
+                    product.description = desc
+                    product.fabric_details = fabric
+                    product.care_instructions = care
+                    product.is_featured = is_featured
+                    product.is_seasonal = is_seasonal
+                    product.is_cicada_wear = is_cicada_wear
+                    product.save()
 
-            for sz in all_possible_sizes:
-                if sz in selected_sizes:
-                    stock_val = request.POST.get(f'stock_{sz}', 0)
-                    try:
-                        st_num = int(stock_val) if stock_val is not None and stock_val != '' else 0
-                    except ValueError:
-                        st_num = 0
-                    var, created = ProductVariant.objects.get_or_create(
-                        product=product, size=sz, color="Original Gold",
-                        defaults={'sku': f"{product.sku}-{sz}", 'stock': st_num}
-                    )
-                    var.stock = st_num
-                    var.sku = f"{product.sku}-{sz}"
-                    var.save()
+                    for sz in all_possible_sizes:
+                        if sz in selected_sizes:
+                            stock_val = request.POST.get(f'stock_{sz}', 0)
+                            try:
+                                st_num = int(stock_val) if stock_val is not None and str(stock_val).strip() != '' else 0
+                                if st_num < 0:
+                                    st_num = 0
+                            except ValueError:
+                                st_num = 0
+                            var, created = ProductVariant.objects.get_or_create(
+                                product=product, size=sz, color="Original Gold",
+                                defaults={'sku': f"{product.sku}-{sz}", 'stock': st_num}
+                            )
+                            var.stock = st_num
+                            var.sku = f"{product.sku}-{sz}"
+                            var.save()
+                        else:
+                            ProductVariant.objects.filter(product=product, size=sz).delete()
+
+                    messages.success(request, f"Product '{name}' and size specifications updated successfully.")
                 else:
-                    ProductVariant.objects.filter(product=product, size=sz).delete()
-
-            messages.success(request, f"Product '{name}' and size specifications updated successfully.")
-        else:
-            product = Product.objects.create(
-                name=name, sku=sku, category=category,
-                base_price=price, sale_price=sale_price, collection=collection,
-                description=desc, fabric_details=fabric, care_instructions=care,
-                is_featured=is_featured, is_seasonal=is_seasonal, is_cicada_wear=is_cicada_wear
-            )
-            for sz in all_possible_sizes:
-                if sz in selected_sizes:
-                    stock_val = request.POST.get(f'stock_{sz}', 5)
-                    try:
-                        st_num = int(stock_val) if stock_val is not None and stock_val != '' else 5
-                    except ValueError:
-                        st_num = 5
-                    ProductVariant.objects.create(
-                        product=product, size=sz, color="Original Gold", stock=st_num, sku=f"{product.sku}-{sz}"
+                    product = Product.objects.create(
+                        name=name, sku=sku, category=category,
+                        base_price=base_price_val, sale_price=sale_price_val, shipping_charge=shipping_val,
+                        collection=collection, description=desc, fabric_details=fabric, care_instructions=care,
+                        is_featured=is_featured, is_seasonal=is_seasonal, is_cicada_wear=is_cicada_wear
                     )
-            messages.success(request, f"New product '{name}' created successfully with configured size variants.")
-            
-        images = request.FILES.getlist('images')
-        for i, img in enumerate(images):
-            # Process and standardize image to 800x880 JPEG
-            try:
-                from PIL import Image, ImageOps
-                import io
-                from django.core.files.base import ContentFile
-                import os
-                
-                img_io = io.BytesIO()
-                with Image.open(img) as pil_img:
-                    # Handle transparency/alpha channels
-                    if pil_img.mode in ('RGBA', 'LA') or (pil_img.mode == 'P' and 'transparency' in pil_img.info):
-                        background = Image.new('RGB', pil_img.size, (255, 255, 255))
-                        background.paste(pil_img, mask=pil_img.convert('RGBA').split()[3])
-                        pil_img = background
-                    elif pil_img.mode != 'RGB':
-                        pil_img = pil_img.convert('RGB')
+                    for sz in all_possible_sizes:
+                        if sz in selected_sizes:
+                            stock_val = request.POST.get(f'stock_{sz}', 5)
+                            try:
+                                st_num = int(stock_val) if stock_val is not None and str(stock_val).strip() != '' else 5
+                                if st_num < 0:
+                                    st_num = 5
+                            except ValueError:
+                                st_num = 5
+                            ProductVariant.objects.create(
+                                product=product, size=sz, color="Original Gold", stock=st_num, sku=f"{product.sku}-{sz}"
+                            )
+                    messages.success(request, f"Product '{name}' created successfully.")
                     
-                    resized_img = ImageOps.fit(pil_img, (800, 880), Image.Resampling.LANCZOS)
-                    resized_img.save(img_io, format='JPEG', quality=85)
-                
-                base_name, _ = os.path.splitext(img.name)
-                new_name = f"{base_name}.jpg"
-                processed_img = ContentFile(img_io.getvalue(), name=new_name)
-            except Exception:
-                processed_img = img
-                
-            ProductImage.objects.create(
-                product=product,
-                image=processed_img,
-                is_primary=(i == 0 and not product.images.filter(is_primary=True).exists())
-            )
+                images = request.FILES.getlist('images')
+                for i, img in enumerate(images):
+                    try:
+                        from PIL import Image, ImageOps
+                        import io
+                        from django.core.files.base import ContentFile
+                        import os
+                        
+                        img_io = io.BytesIO()
+                        with Image.open(img) as pil_img:
+                            if pil_img.mode in ('RGBA', 'LA') or (pil_img.mode == 'P' and 'transparency' in pil_img.info):
+                                background = Image.new('RGB', pil_img.size, (255, 255, 255))
+                                background.paste(pil_img, mask=pil_img.convert('RGBA').split()[3])
+                                pil_img = background
+                            elif pil_img.mode != 'RGB':
+                                pil_img = pil_img.convert('RGB')
+                            
+                            resized_img = ImageOps.fit(pil_img, (800, 880), Image.Resampling.LANCZOS)
+                            resized_img.save(img_io, format='JPEG', quality=85)
+                        
+                        base_name, _ = os.path.splitext(img.name)
+                        new_name = f"{base_name}.jpg"
+                        processed_img = ContentFile(img_io.getvalue(), name=new_name)
+                    except Exception:
+                        processed_img = img
+                        
+                    ProductImage.objects.create(
+                        product=product,
+                        image=processed_img,
+                        is_primary=(i == 0 and not product.images.filter(is_primary=True).exists())
+                    )
+        except Exception as e:
+            messages.error(request, f"Database Error: Could not save product '{name}'. Details: {str(e)}")
+            return redirect('dashboard_products')
             
         return redirect('dashboard_products')
         

@@ -64,19 +64,20 @@
                                 data-bs-toggle="modal" 
                                 data-bs-target="#productModal" 
                                 data-product-id="{{ prod.id }}"
-                                data-product-name="{{ prod.name|escapejs }}"
-                                data-product-sku="{{ prod.sku|escapejs }}"
+                                data-product-name="{{ prod.name }}"
+                                data-product-sku="{{ prod.sku }}"
                                 data-product-category="{{ prod.category.id }}"
                                 data-product-base-price="{{ prod.base_price }}"
                                 data-product-sale-price="{{ prod.sale_price|default:'' }}"
-                                data-product-collection="{{ prod.collection|escapejs }}"
-                                data-product-description="{{ prod.description|escapejs }}"
-                                data-product-fabric="{{ prod.fabric_details|escapejs }}"
-                                data-product-care="{{ prod.care_instructions|escapejs }}"
+                                data-product-shipping="{{ prod.shipping_charge }}"
+                                data-product-collection="{{ prod.collection }}"
+                                data-product-description="{{ prod.description }}"
+                                data-product-fabric="{{ prod.fabric_details }}"
+                                data-product-care="{{ prod.care_instructions }}"
                                 data-product-featured="{{ prod.is_featured|yesno:'true,false' }}"
                                 data-product-seasonal="{{ prod.is_seasonal|yesno:'true,false' }}"
                                 data-product-cicada="{{ prod.is_cicada_wear|yesno:'true,false' }}"
-                                data-product-variants="{{ prod.variants_dict_json|escapejs }}"
+                                data-product-variants="{{ prod.variants_dict_json }}"
                                 onclick="populateProductModal(this)"
                                 id="edit-product-btn-{{ prod.id }}">
                             Edit
@@ -117,19 +118,20 @@
                     <div class="row g-3">
                         <div class="col-md-8">
                             <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Design Name</label>
-                            <input type="text" name="name" class="form-control" required id="form-name">
+                            <input type="text" name="name" class="form-control" required id="form-name" autocomplete="off">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label text-secondary text-uppercase fw-bold d-flex justify-content-between align-items-center" style="font-size:0.65rem;">
                                 <span>SKU (Code)</span>
                                 <button type="button" class="btn btn-link p-0 text-decoration-none text-primary fw-bold" style="font-size:0.65rem;" onclick="generateSKU()" id="sku-gen-btn">Generate</button>
                             </label>
-                            <input type="text" name="sku" class="form-control" id="form-sku" placeholder="Or leave blank to auto-gen">
+                            <input type="text" name="sku" class="form-control" id="form-sku" placeholder="Or leave blank to auto-gen" autocomplete="off">
                         </div>
                         
                         <div class="col-md-4">
                             <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Category</label>
                             <select name="category" class="form-select" required id="form-category">
+                                <option value="" disabled selected>Select Category</option>
                                 {% for cat in categories %}
                                     <option value="{{ cat.id }}">{{ cat.name }}</option>
                                 {% endfor %}
@@ -147,14 +149,18 @@
                         
                         <div class="col-md-4">
                             <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Base Price (₹)</label>
-                            <input type="number" step="0.01" name="base_price" class="form-control" required id="form-base-price">
+                            <input type="number" step="0.01" name="base_price" class="form-control" required id="form-base-price" autocomplete="off">
                         </div>
                         
                         <div class="col-md-4">
                             <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Sale Price (₹ - Optional)</label>
-                            <input type="number" step="0.01" name="sale_price" class="form-control" id="form-sale-price">
+                            <input type="number" step="0.01" name="sale_price" class="form-control" id="form-sale-price" autocomplete="off">
                         </div>
-                        <div class="col-md-8">
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Shipping Charge (₹ - India)</label>
+                            <input type="number" step="0.01" min="0" name="shipping_charge" class="form-control" id="form-shipping-charge" placeholder="0.00" autocomplete="off">
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label text-secondary text-uppercase fw-bold" style="font-size:0.65rem;">Upload Images (Multiple supported)</label>
                             <input type="file" name="images" class="form-control" multiple onchange="previewImages(this)" id="form-images-input">
                             <div id="image-preview-container" class="d-flex flex-wrap gap-2 mt-2"></div>
@@ -249,6 +255,7 @@
         document.getElementById('form-category').value = '';
         document.getElementById('form-base-price').value = '';
         document.getElementById('form-sale-price').value = '';
+        document.getElementById('form-shipping-charge').value = '0.00';
         document.getElementById('form-collection').value = '';
         document.getElementById('form-description').value = '';
         document.getElementById('form-fabric').value = '';
@@ -278,6 +285,7 @@
         document.getElementById('form-category').value = dataset.productCategory || '';
         document.getElementById('form-base-price').value = dataset.productBasePrice || '';
         document.getElementById('form-sale-price').value = dataset.productSalePrice || '';
+        document.getElementById('form-shipping-charge').value = dataset.productShipping || '0.00';
         document.getElementById('form-collection').value = dataset.productCollection || '';
         document.getElementById('form-description').value = decodeString(dataset.productDescription || '');
         document.getElementById('form-fabric').value = decodeString(dataset.productFabric || '');

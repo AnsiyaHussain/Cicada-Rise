@@ -39,7 +39,6 @@ ALLOWED_HOSTS = [
     "cicadarise.com",
     "www.cicadarise.com",
     ".onrender.com",
-    "*",
 ]
 
 # Application definition

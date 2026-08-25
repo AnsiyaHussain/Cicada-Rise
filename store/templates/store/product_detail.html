@@ -89,13 +89,13 @@
      
     <div class="row mb-4">
         <div class="col-12">
-            <nav aria-label="breadcrumb">
+            <!-- <nav aria-label="breadcrumb">
                 <ol class="breadcrumb" style="font-size:0.8rem;">
                     <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-primary text-decoration-none">Home</a></li>
                     <li class="breadcrumb-item"><a href="{% url 'shop' %}" class="text-primary text-decoration-none">Shop</a></li>
                     <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
                 </ol>
-            </nav>
+            </nav> -->
         </div>
     </div>
 
@@ -175,8 +175,18 @@
             </div>
 
             <!-- Price -->
-            <div class="fs-2 fw-semibold mb-4" style="font-family: 'Inter', sans-serif; color: #3E0202;">
+            <div class="fs-2 fw-semibold mb-2" style="font-family: 'Inter', sans-serif; color: #3E0202;">
                 ₹<span x-text="activeVariant ? Number(activeVariant.price).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : parseFloat('{{ product.price|default:0 }}').toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})">{% if product.price %}{{ product.price|floatformat:2 }}{% endif %}</span>
+            </div>
+
+            <!-- Shipping Charge Info -->
+            <div class="mb-4 text-secondary" style="font-size:0.85rem;">
+                <i class="fa-solid fa-truck-fast text-warning me-1"></i>
+                {% if product.shipping_charge > 0 %}
+                    Shipping: <strong class="text-dark">₹{{ product.shipping_charge|floatformat:2 }}</strong> (Ships across India)
+                {% else %}
+                    Shipping: <strong class="text-success">Free Shipping</strong> (Ships across India)
+                {% endif %}
             </div>
 
             <p class="text-muted mb-4" style="font-size:0.9rem; line-height: 1.7;">{{ product.description }}</p>
