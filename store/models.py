@@ -95,13 +95,31 @@ class Product(models.Model):
 
     @property
     def primary_image_url(self):
-        primary_img = self.images.filter(is_primary=True).first() or self.images.first()
+        all_imgs = list(self.images.all())
+        primary_img = next((img for img in all_imgs if img.is_primary), None) or (all_imgs[0] if all_imgs else None)
         if primary_img and primary_img.image:
             try:
                 return primary_img.image.url
             except Exception:
                 return "/static/store/images/veranda.jpg"
         return "/static/store/images/veranda.jpg"
+
+    @property
+    def images_dict_json(self):
+        import json
+        img_list = []
+        for img in self.images.all():
+            try:
+                url = img.image.url
+            except Exception:
+                url = ''
+            if url:
+                img_list.append({
+                    'id': img.id,
+                    'url': url,
+                    'is_primary': img.is_primary
+                })
+        return json.dumps(img_list)
 
     @property
     def average_rating(self):
@@ -115,8 +133,13 @@ class ProductImage(models.Model):
     image = models.ImageField(upload_to='products/')
     is_primary = models.BooleanField(default=False)
 
+    def save(self, *args, **kwargs):
+        if self.is_primary and self.product_id:
+            ProductImage.objects.filter(product_id=self.product_id).exclude(pk=self.pk).update(is_primary=False)
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"Image for {self.product.name}"
+        return f"Image for {self.product.name} ({'Primary' if self.is_primary else 'Secondary'})"
 
 class ProductVariant(models.Model):
     SIZE_CHOICES = [

@@ -1777,3 +1777,38 @@ def dashboard_toggle_category(request, category_id):
     </button>
     """
     return HttpResponse(html)
+
+@staff_required
+@require_POST
+def dashboard_set_primary_image(request, image_id):
+    image = get_object_or_404(ProductImage, id=image_id)
+    product = image.product
+    ProductImage.objects.filter(product=product).update(is_primary=False)
+    image.is_primary = True
+    image.save()
+    logger.info(f"SET PRIMARY IMAGE — Image ID: {image.id}, Product ID: {product.id}, Product: '{product.name}'")
+    messages.success(request, f"Primary image updated for product '{product.name}'.")
+    return redirect('dashboard_products')
+
+@staff_required
+@require_POST
+def dashboard_delete_image(request, image_id):
+    image = get_object_or_404(ProductImage, id=image_id)
+    product = image.product
+    was_primary = image.is_primary
+    if image.image:
+        try:
+            image.image.delete(save=False)
+        except Exception as e:
+            logger.warning(f"Failed to delete image file from storage: {str(e)}")
+    image.delete()
+    
+    if was_primary:
+        next_image = product.images.first()
+        if next_image:
+            next_image.is_primary = True
+            next_image.save()
+            
+    logger.info(f"DELETE IMAGE — Image ID: {image_id}, Product ID: {product.id}, Product: '{product.name}'")
+    messages.success(request, f"Image removed from product '{product.name}'.")
+    return redirect('dashboard_products')

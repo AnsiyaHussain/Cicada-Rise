@@ -358,7 +358,7 @@ a:hover, a:focus {
 .product-image-wrapper {
     position: relative;
     width: 100%;
-    padding-top: 105%; /* Normal compact size height ratio */
+    padding-top: 130%; /* Fashion 3:4 vertical ratio */
     overflow: hidden;
     background-color: var(--cream);
 }
@@ -370,7 +370,7 @@ a:hover, a:focus {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .product-card:hover .product-img {
@@ -379,33 +379,35 @@ a:hover, a:focus {
 
 .product-badge {
     position: absolute;
-    top: 15px;
-    left: 15px;
+    top: 10px;
+    left: 10px;
     background-color: var(--primary);
     color: var(--cream);
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 500;
-    padding: 0.3rem 0.8rem;
+    padding: 0.2rem 0.5rem;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
     z-index: 2;
 }
 
 .product-wishlist-btn {
     position: absolute;
-    top: 15px;
-    right: 15px;
-    background: rgba(248, 243, 237, 0.9);
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.85);
     border: none;
     border-radius: 50%;
-    width: 38px;
-    height: 38px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--primary);
+    font-size: 0.8rem;
     z-index: 2;
     transition: var(--transition-smooth);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .product-wishlist-btn:hover {
@@ -415,29 +417,28 @@ a:hover, a:focus {
 }
 
 .product-card-body {
-    padding: 1.5rem;
+    padding: 0.85rem;
     text-align: center;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
 }
 
-.product-card-category {
-    font-size: 0.75rem;
-    color: var(--secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 0.5rem;
-}
-
 .product-card-title {
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
     font-weight: 500;
+    line-height: 1.25em;
+    height: 2.5em;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 0.25rem;
 }
 
 .product-card-title a {
-    color: var(--primary);
+    color: var(--dark);
     text-decoration: none;
     transition: var(--transition-smooth);
 }
@@ -447,7 +448,12 @@ a:hover, a:focus {
 }
 
 .product-card-price {
-    font-weight: 500;
+    font-family: var(--font-body);
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+}
     color: var(--dark);
     font-size: 1.00rem;
 }

@@ -2,7 +2,7 @@ from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth.models import User
 from django.urls import reverse
-from store.models import Category, Product, ProductVariant, Review, Order, RestockHistory, HomepageSettings
+from store.models import Category, Product, ProductVariant, ProductImage, Review, Order, RestockHistory, HomepageSettings
 
 class CicadaRiseTestCase(TestCase):
     def setUp(self):
@@ -497,6 +497,45 @@ class CicadaRiseTestCase(TestCase):
         prod = Product.objects.filter(sku='CR-IMG-001').first()
         self.assertIsNotNone(prod)
         self.assertEqual(prod.images.count(), 1)
+
+    def test_dashboard_set_primary_image_and_delete_image(self):
+        """Tests selecting a primary image and deleting an individual image from a product."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.login(username='adminuser', password='adminpassword')
+        
+        gif_bytes = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+        img1_file = SimpleUploadedFile('img1.gif', gif_bytes, content_type='image/gif')
+        img2_file = SimpleUploadedFile('img2.gif', gif_bytes, content_type='image/gif')
+
+        prod = Product.objects.create(
+            name="Multi Image Test Product",
+            sku="CR-MULTI-001",
+            category=self.category,
+            base_price=Decimal("1500.00")
+        )
+        img1 = ProductImage.objects.create(product=prod, image=img1_file, is_primary=True)
+        img2 = ProductImage.objects.create(product=prod, image=img2_file, is_primary=False)
+
+        self.assertEqual(prod.images.count(), 2)
+        self.assertTrue(img1.is_primary)
+        self.assertFalse(img2.is_primary)
+
+        # Test set primary image view
+        resp = self.client.post(reverse('dashboard_set_primary_image', args=[img2.id]), follow=True)
+        self.assertEqual(resp.status_code, 200)
+        img1.refresh_from_db()
+        img2.refresh_from_db()
+        self.assertFalse(img1.is_primary)
+        self.assertTrue(img2.is_primary)
+        self.assertEqual(prod.primary_image_url, img2.image.url)
+
+        # Test delete image view
+        resp_del = self.client.post(reverse('dashboard_delete_image', args=[img2.id]), follow=True)
+        self.assertEqual(resp_del.status_code, 200)
+        self.assertEqual(prod.images.count(), 1)
+        img1.refresh_from_db()
+        self.assertTrue(img1.is_primary)
+        self.assertEqual(prod.primary_image_url, img1.image.url)
 
 
 
