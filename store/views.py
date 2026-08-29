@@ -1,7 +1,10 @@
 import urllib.parse
 import io
+import logging
 from decimal import Decimal
 from functools import wraps
+
+logger = logging.getLogger('store')
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
@@ -1316,32 +1319,38 @@ def dashboard_products(request):
     categories = Category.objects.all()
     
     if request.method == 'POST':
-        # Validate uploaded image sizes (must be under 2 MB)
-        uploaded_images = request.FILES.getlist('images')
-        for img in uploaded_images:
-            if img.size > 2 * 1024 * 1024:
-                messages.error(request, f"Upload Failed: Image '{img.name}' is more than 2 MB. Please compress your images under 2 MB before uploading.")
-                return redirect('dashboard_products')
-                
         product_id = request.POST.get('product_id')
         name = request.POST.get('name', '').strip()
-        if not name:
-            messages.error(request, "Product name is required.")
-            return redirect('dashboard_products')
-
         sku = request.POST.get('sku')
         if sku:
             sku = sku.strip()
         if not sku:
             sku = None
 
+        logger.info(f"PRODUCT CREATE/UPDATE REQUEST — User: {request.user.username}, Action: {'EDIT' if product_id else 'CREATE'}, Name: '{name}', SKU: '{sku}'")
+
+        # Validate uploaded image sizes (must be under 2 MB)
+        uploaded_images = request.FILES.getlist('images')
+        for img in uploaded_images:
+            if img.size > 2 * 1024 * 1024:
+                logger.warning(f"PRODUCT VALIDATION FAILED — Image '{img.name}' exceeds 2 MB ({img.size} bytes)")
+                messages.error(request, f"Upload Failed: Image '{img.name}' is more than 2 MB. Please compress your images under 2 MB before uploading.")
+                return redirect('dashboard_products')
+                
+        if not name:
+            logger.warning("PRODUCT VALIDATION FAILED — Missing product name")
+            messages.error(request, "Product name is required.")
+            return redirect('dashboard_products')
+
         cat_id = request.POST.get('category')
         if not cat_id:
+            logger.warning("PRODUCT VALIDATION FAILED — Missing category ID")
             messages.error(request, "Please select a valid category.")
             return redirect('dashboard_products')
             
         category = Category.objects.filter(id=cat_id).first()
         if not category:
+            logger.warning(f"PRODUCT VALIDATION FAILED — Category ID {cat_id} not found in database")
             messages.error(request, "Selected category does not exist.")
             return redirect('dashboard_products')
 
@@ -1357,9 +1366,11 @@ def dashboard_products(request):
         try:
             base_price_val = Decimal(price)
             if base_price_val < 0:
+                logger.warning(f"PRODUCT VALIDATION FAILED — Negative base price: {price}")
                 messages.error(request, "Base price cannot be negative.")
                 return redirect('dashboard_products')
         except (ValueError, TypeError, Exception):
+            logger.warning(f"PRODUCT VALIDATION FAILED — Invalid base price input: {price}")
             messages.error(request, "Please enter a valid base price.")
             return redirect('dashboard_products')
 
@@ -1369,9 +1380,11 @@ def dashboard_products(request):
             try:
                 sale_price_val = Decimal(sale_price.strip())
                 if sale_price_val < 0:
+                    logger.warning(f"PRODUCT VALIDATION FAILED — Negative sale price: {sale_price}")
                     messages.error(request, "Sale price cannot be negative.")
                     return redirect('dashboard_products')
             except (ValueError, TypeError, Exception):
+                logger.warning(f"PRODUCT VALIDATION FAILED — Invalid sale price input: {sale_price}")
                 messages.error(request, "Please enter a valid sale price.")
                 return redirect('dashboard_products')
 
@@ -1381,9 +1394,11 @@ def dashboard_products(request):
             try:
                 shipping_val = Decimal(shipping_charge_input.strip())
                 if shipping_val < 0:
+                    logger.warning(f"PRODUCT VALIDATION FAILED — Negative shipping charge: {shipping_charge_input}")
                     messages.error(request, "Shipping charge cannot be negative.")
                     return redirect('dashboard_products')
             except (ValueError, TypeError, Exception):
+                logger.warning(f"PRODUCT VALIDATION FAILED — Invalid shipping charge input: {shipping_charge_input}")
                 messages.error(request, "Please enter a valid shipping charge.")
                 return redirect('dashboard_products')
 
@@ -1393,6 +1408,7 @@ def dashboard_products(request):
             if product_id:
                 sku_query = sku_query.exclude(id=product_id)
             if sku_query.exists():
+                logger.warning(f"PRODUCT VALIDATION FAILED — Duplicate SKU '{sku}' already exists")
                 messages.error(request, f"This SKU '{sku}' already exists. Please enter a unique SKU.")
                 return redirect('dashboard_products')
 
@@ -1403,6 +1419,8 @@ def dashboard_products(request):
         selected_sizes = request.POST.getlist('sizes')
         all_possible_sizes = ['S', 'M', 'L', 'XL', 'XXL', '3XL']
         
+        logger.info(f"VALIDATION PASSED — Starting DB transaction for '{name}' (Base Price: ₹{base_price_val}, Shipping: ₹{shipping_val})")
+
         try:
             from django.db import transaction
             with transaction.atomic():
@@ -1443,6 +1461,7 @@ def dashboard_products(request):
                             ProductVariant.objects.filter(product=product, size=sz).delete()
 
                     messages.success(request, f"Product '{name}' and size specifications updated successfully.")
+                    logger.info(f"DATABASE UPDATE SUCCESS — Product ID: {product.id}, Name: '{product.name}', SKU: '{product.sku}'")
                 else:
                     product = Product.objects.create(
                         name=name, sku=sku, category=category,
@@ -1463,6 +1482,7 @@ def dashboard_products(request):
                                 product=product, size=sz, color="Original Gold", stock=st_num, sku=f"{product.sku}-{sz}"
                             )
                     messages.success(request, f"Product '{name}' created successfully.")
+                    logger.info(f"DATABASE CREATE SUCCESS — Product ID: {product.id}, Name: '{product.name}', SKU: '{product.sku}', Slug: '{product.slug}'")
                     
                 images = request.FILES.getlist('images')
                 for i, img in enumerate(images):
@@ -1487,7 +1507,8 @@ def dashboard_products(request):
                         base_name, _ = os.path.splitext(img.name)
                         new_name = f"{base_name}.jpg"
                         processed_img = ContentFile(img_io.getvalue(), name=new_name)
-                    except Exception:
+                    except Exception as img_err:
+                        logger.warning(f"IMAGE PROCESSING WARNING — Could not standardize image '{img.name}': {str(img_err)}")
                         processed_img = img
                         
                     ProductImage.objects.create(
@@ -1495,7 +1516,9 @@ def dashboard_products(request):
                         image=processed_img,
                         is_primary=(i == 0 and not product.images.filter(is_primary=True).exists())
                     )
+                    logger.info(f"IMAGE SAVED — Product ID: {product.id}, Image File: '{img.name}'")
         except Exception as e:
+            logger.error(f"DATABASE TRANSACTION ERROR — Could not save product '{name}': {str(e)}", exc_info=True)
             messages.error(request, f"Database Error: Could not save product '{name}'. Details: {str(e)}")
             return redirect('dashboard_products')
             
