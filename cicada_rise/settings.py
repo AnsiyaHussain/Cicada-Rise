@@ -107,7 +107,12 @@ WSGI_APPLICATION = 'cicada_rise.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
+DATABASE_URL = (
+    os.environ.get('DATABASE_URL') or 
+    os.environ.get('INTERNAL_DATABASE_URL') or 
+    os.environ.get('POSTGRES_URL')
+)
+
 if DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.parse(
@@ -116,6 +121,12 @@ if DATABASE_URL:
             conn_health_checks=True,
         )
     }
+elif os.environ.get('RENDER') or os.environ.get('RENDER_SERVICE_ID'):
+    raise ValueError(
+        "CRITICAL RENDER CONFIGURATION ERROR: Running in Render production environment, but "
+        "neither 'DATABASE_URL' nor 'INTERNAL_DATABASE_URL' environment variable is configured! "
+        "Please connect your PostgreSQL database to your Web Service under Render Dashboard -> Environment."
+    )
 else:
     DATABASES = {
         'default': {

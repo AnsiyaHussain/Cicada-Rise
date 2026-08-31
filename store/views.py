@@ -1469,6 +1469,9 @@ def dashboard_products(request):
                         collection=collection, description=desc, fabric_details=fabric, care_instructions=care,
                         is_featured=is_featured, is_seasonal=is_seasonal, is_cicada_wear=is_cicada_wear
                     )
+                    if not product.pk:
+                        raise ValueError(f"Failed to obtain primary key for product '{name}'. Database insert failed.")
+
                     for sz in all_possible_sizes:
                         if sz in selected_sizes:
                             stock_val = request.POST.get(f'stock_{sz}', 5)
