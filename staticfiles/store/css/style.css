@@ -458,31 +458,33 @@ a:hover, a:focus {
     font-size: 1.00rem;
 }
 
-/* Floating Cicada Animation */
-.floating-cicada {
+/* Floating WhatsApp Enquiry Button */
+.floating-whatsapp, .floating-cicada {
     position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 55px;
-    height: 55px;
-    background-color: var(--primary);
-    border: 1px solid var(--gold);
+    bottom: 25px;
+    right: 25px;
+    width: 54px;
+    height: 54px;
+    background-color: #25D366;
+    color: #FFFFFF !important;
+    border: none;
     border-radius: 50%;
-    z-index: 1000;
+    z-index: 1040;
     display: flex;
     justify-content: center;
     align-items: center;
-    color: var(--gold);
-    box-shadow: 0 10px 25px rgba(91, 26, 20, 0.3);
+    box-shadow: 0 6px 20px rgba(37, 211, 102, 0.45);
     cursor: pointer;
     text-decoration: none;
+    font-size: 28px;
     transition: var(--transition-smooth);
 }
 
-.floating-cicada:hover {
-    transform: translateY(-5px) scale(1.05);
-    background-color: var(--gold);
-    color: var(--primary);
+.floating-whatsapp:hover, .floating-cicada:hover {
+    transform: translateY(-4px) scale(1.08);
+    background-color: #20ba5a;
+    color: #FFFFFF !important;
+    box-shadow: 0 10px 25px rgba(37, 211, 102, 0.6);
 }
 
 /* Story Section */
@@ -639,11 +641,12 @@ a:hover, a:focus {
         padding-bottom: 70px;
     }
     
-    .floating-cicada {
-        bottom: 85px; /* Shift up to avoid overlap */
-        right: 20px;
-        width: 45px;
-        height: 45px;
+    .floating-whatsapp, .floating-cicada {
+        bottom: 80px; /* Shift up above mobile bottom nav bar */
+        right: 18px;
+        width: 48px;
+        height: 48px;
+        font-size: 24px;
     }
     
     .hero-content {

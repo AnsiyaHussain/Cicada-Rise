@@ -22,7 +22,12 @@
                     </div>
                     <div class="mb-4">
                         <label for="password" class="form-label font-body fw-bold text-uppercase" style="font-size:0.7rem; letter-spacing:0.05em;">Password</label>
-                        <input type="password" name="password" class="form-control rounded-0 border-primary py-2 px-3" required id="password" placeholder="Enter password">
+                        <div class="input-group">
+                            <input type="password" name="password" class="form-control rounded-start border-primary py-2 px-3" required id="password" placeholder="Enter password">
+                            <button class="btn btn-outline-primary px-3" type="button" onclick="togglePassword('password', this)" id="toggle-login-password" title="Toggle password visibility">
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+                        </div>
                     </div>
                     <button class="btn btn-premium w-100 py-3 mb-3" type="submit" id="login-submit-btn">Sign In</button>
                 </form>

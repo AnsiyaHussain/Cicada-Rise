@@ -127,14 +127,13 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Floating Cicada Icon Animation -->
-    <!-- Direct deep link to WhatsApp with customized order question -->
+    <!-- Floating WhatsApp Enquiry Button -->
     <a href="https://api.whatsapp.com/send?phone=919447771056&text=Hi%21%20I%27m%20interested%20in%20shopping%20from%20Cicada%20Rise.%20Can%20you%20assist%20me%3F"
-    target="_blank"
-    class="floating-cicada"
-    title="Chat with us on WhatsApp"
-    id="floating-whatsapp-cicada">
-        <i class="fa-brands fa-whatsapp fs-4"></i>
+       target="_blank"
+       class="floating-whatsapp"
+       title="Chat with us on WhatsApp"
+       id="floating-whatsapp-btn">
+        <i class="fa-brands fa-whatsapp"></i>
     </a>
 
     <!-- Mobile-First Bottom Nav Bar (for 90% visitors) -->
@@ -255,6 +254,25 @@
     <!-- Custom JS Scripts -->
     <script src="{% static 'store/js/main.js' %}"></script>
     <script>
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (icon) {
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                }
+            } else {
+                input.type = 'password';
+                if (icon) {
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            }
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
             const alerts = document.querySelectorAll('#dashboard-alert-container .alert');
             alerts.forEach(alert => {
