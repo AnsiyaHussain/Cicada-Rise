@@ -1,3 +1,4 @@
+import os
 from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth.models import User
@@ -36,13 +37,15 @@ class CicadaRiseTestCase(TestCase):
         )
 
         # Setup users
+        import os
+        os.environ['DJANGO_SUPERUSER_EMAIL'] = 'approved_admin@cicada.com'
         self.user = User.objects.create_user(
             username='testuser', 
             password='testpassword'
         )
         self.admin = User.objects.create_superuser(
             username='adminuser',
-            email='admin@cicada.com',
+            email='approved_admin@cicada.com',
             password='adminpassword'
         )
 
@@ -129,7 +132,7 @@ class CicadaRiseTestCase(TestCase):
         
         # Verify warning message exists
         messages = [m.message for m in response.context['messages']]
-        self.assertIn("Access Denied: Staff credentials required.", messages)
+        self.assertIn("Access Denied: Administrator credentials required.", messages)
         self.client.logout()
 
         # 3. Authenticated staff allowed in
@@ -536,6 +539,149 @@ class CicadaRiseTestCase(TestCase):
         img1.refresh_from_db()
         self.assertTrue(img1.is_primary)
         self.assertEqual(prod.primary_image_url, img1.image.url)
+
+    def test_approved_admin_can_access_dashboard(self):
+        """1. Approved email + staff + superuser can access dashboard."""
+        os.environ['DJANGO_SUPERUSER_EMAIL'] = 'approved_admin@cicada.com'
+        self.client.login(username='adminuser', password='adminpassword')
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_normal_customer_cannot_access_dashboard(self):
+        """2. Normal customer cannot access dashboard."""
+        os.environ['DJANGO_SUPERUSER_EMAIL'] = 'approved_admin@cicada.com'
+        self.client.login(username='testuser', password='testpassword')
+        response = self.client.get(reverse('admin_dashboard'), follow=True)
+        self.assertRedirects(response, reverse('home'))
+        self.assertContains(response, "Access Denied")
+
+    def test_customer_changing_email_cannot_access_admin(self):
+        """3. Customer changing email to approved email cannot access (is_staff/is_superuser remain False)."""
+        os.environ['DJANGO_SUPERUSER_EMAIL'] = 'approved_admin@cicada.com'
+        customer = User.objects.create_user(
+            username='imposter',
+            email='imposter@domain.com',
+            password='imposterpassword'
+        )
+        self.client.login(username='imposter', password='imposterpassword')
+        
+        # Change email to approved admin email
+        customer.email = 'approved_admin@cicada.com'
+        customer.save()
+
+        # Verify permission flags remain False
+        self.assertFalse(customer.is_staff)
+        self.assertFalse(customer.is_superuser)
+
+        # Attempt to access dashboard
+        response = self.client.get(reverse('admin_dashboard'), follow=True)
+        self.assertRedirects(response, reverse('home'))
+        self.assertContains(response, "Access Denied")
+
+    def test_unapproved_email_admin_cannot_access_admin(self):
+        """4. An account using admin@cicada.com or another email cannot access when DJANGO_SUPERUSER_EMAIL is set."""
+        os.environ['DJANGO_SUPERUSER_EMAIL'] = 'approved_admin@cicada.com'
+        other_admin = User.objects.create_superuser(
+            username='unapproved_admin',
+            email='admin@cicada.com',
+            password='adminpassword'
+        )
+        self.client.login(username='unapproved_admin', password='adminpassword')
+        response = self.client.get(reverse('admin_dashboard'), follow=True)
+        self.assertRedirects(response, reverse('home'))
+        self.assertContains(response, "Access Denied")
+
+    def test_missing_django_superuser_email_denies_access_fail_closed(self):
+        """5. Missing DJANGO_SUPERUSER_EMAIL fails closed and denies access to everyone."""
+        orig_email = os.environ.pop('DJANGO_SUPERUSER_EMAIL', None)
+        try:
+            self.client.login(username='adminuser', password='adminpassword')
+            response = self.client.get(reverse('admin_dashboard'), follow=True)
+            self.assertRedirects(response, reverse('home'))
+            self.assertContains(response, "Access Denied")
+        finally:
+            if orig_email is not None:
+                os.environ['DJANGO_SUPERUSER_EMAIL'] = orig_email
+
+    def test_existing_admin_account_promoted_safely_no_duplicates(self):
+        """6. Existing customer account matching approved email is promoted safely without creating duplicates."""
+        from django.core.management import call_command
+
+        orig_email = os.environ.get('DJANGO_SUPERUSER_EMAIL')
+        try:
+            os.environ['DJANGO_SUPERUSER_EMAIL'] = 'promotetest@cicada.com'
+            os.environ['DJANGO_SUPERUSER_USERNAME'] = 'promotetest_customer'
+
+            initial_user_count = User.objects.count()
+
+            cust = User.objects.create_user(
+                username='promotetest_customer',
+                email='promotetest@cicada.com',
+                password='OriginalPassword123!'
+            )
+            self.assertEqual(User.objects.count(), initial_user_count + 1)
+            self.assertFalse(cust.is_staff)
+            self.assertFalse(cust.is_superuser)
+
+            # Run promotion command
+            call_command('create_superuser_from_env')
+
+            # Verify no duplicate user was created
+            self.assertEqual(User.objects.count(), initial_user_count + 1)
+
+            cust.refresh_from_db()
+            self.assertTrue(cust.is_staff)
+            self.assertTrue(cust.is_superuser)
+
+            # Verify password was NOT changed by logging in with original password
+            login_success = self.client.login(username='promotetest_customer', password='OriginalPassword123!')
+            self.assertTrue(login_success)
+
+            # Verify promoted account can now access dashboard
+            response = self.client.get(reverse('admin_dashboard'))
+            self.assertEqual(response.status_code, 200)
+        finally:
+            if orig_email is not None:
+                os.environ['DJANGO_SUPERUSER_EMAIL'] = orig_email
+            else:
+                os.environ.pop('DJANGO_SUPERUSER_EMAIL', None)
+            os.environ.pop('DJANGO_SUPERUSER_USERNAME', None)
+
+    def test_promotion_matches_strictly_by_email_and_does_not_fall_back_to_username(self):
+        """7. Proves promotion searches strictly by email and will NOT promote a user with matching username if email does not match."""
+        from django.core.management import call_command
+
+        orig_email = os.environ.get('DJANGO_SUPERUSER_EMAIL')
+        orig_username = os.environ.get('DJANGO_SUPERUSER_USERNAME')
+        try:
+            # Customer A has username 'targetuser' but different email
+            cust_a = User.objects.create_user(
+                username='targetuser',
+                email='different_email@domain.com',
+                password='Password123!'
+            )
+
+            # Env is set to search for admin email 'approved_admin@domain.com' and username 'targetuser'
+            os.environ['DJANGO_SUPERUSER_EMAIL'] = 'approved_admin@domain.com'
+            os.environ['DJANGO_SUPERUSER_USERNAME'] = 'targetuser'
+
+            call_command('create_superuser_from_env')
+
+            # Verify cust_a was NOT promoted and email was NOT changed
+            cust_a.refresh_from_db()
+            self.assertFalse(cust_a.is_staff)
+            self.assertFalse(cust_a.is_superuser)
+            self.assertEqual(cust_a.email, 'different_email@domain.com')
+        finally:
+            if orig_email is not None:
+                os.environ['DJANGO_SUPERUSER_EMAIL'] = orig_email
+            else:
+                os.environ.pop('DJANGO_SUPERUSER_EMAIL', None)
+            if orig_username is not None:
+                os.environ['DJANGO_SUPERUSER_USERNAME'] = orig_username
+            else:
+                os.environ.pop('DJANGO_SUPERUSER_USERNAME', None)
+
 
 
 

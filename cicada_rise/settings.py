@@ -81,6 +81,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'cicada_rise.middleware.StrictAdminAccessMiddleware',
 ]
 
 ROOT_URLCONF = 'cicada_rise.urls'

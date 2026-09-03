@@ -1,3 +1,4 @@
+import os
 import urllib.parse
 import io
 import logging
@@ -34,8 +35,22 @@ def staff_required(view_func):
     def _wrapped_view(request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect('login')
-        if not request.user.is_staff:
-            messages.error(request, "Access Denied: Staff credentials required.")
+        
+        approved_email = os.environ.get('DJANGO_SUPERUSER_EMAIL', '').strip().lower()
+        if not approved_email:
+            messages.error(request, "Access Denied: Admin configuration missing.")
+            return redirect('home')
+
+        user_email = (request.user.email or '').strip().lower()
+
+        is_approved = (
+            request.user.is_staff and 
+            request.user.is_superuser and 
+            user_email == approved_email
+        )
+
+        if not is_approved:
+            messages.error(request, "Access Denied: Administrator credentials required.")
             return redirect('home')
         return view_func(request, *args, **kwargs)
     return _wrapped_view
